@@ -3,7 +3,7 @@
 % Date:     28.oct.2015
 % Description:
 %   This script joins an existing ROS network, subscribes to GNSS data via
-%   a callback function and publish pwm commands.
+%   a callback function and publishes PWM commands.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 close all;
@@ -60,6 +60,7 @@ while 1
     send(engine_pub, engine_msg)
     send(steering_pub, steering_msg)
     
+    % fprintf('\n Loop \n');
     % Get time elapsed in current loop
     loop_t = toc;
     if loop_t > loop_period
@@ -68,4 +69,5 @@ while 1
     
     % Wait until total loop time is elapsed
     pause(loop_period - loop_t);
+    % toc
 end
