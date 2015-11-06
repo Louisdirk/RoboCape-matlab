@@ -126,7 +126,7 @@ classdef RealCar < CtSystem & InitDeinitObject
             engineValue = 0.84*carSpeed + 2.543;
             
             obj.engine_msg.Data = engineValue-12.5;
-            obj.steering_msg.Data = steeringValue-0.435;
+            obj.steering_msg.Data = -steeringValue-0.435;
             
             send(obj.engine_pub, obj.engine_msg)
             send(obj.steering_pub, obj.steering_msg)
