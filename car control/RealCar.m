@@ -20,7 +20,10 @@ classdef RealCar < CtSystem & InitDeinitObject
         engine_pub
         lat0
         lon0
-        sub
+        yaw0
+        gps_sub
+        imu_sub
+        mag_sub
     end
      
     methods  
@@ -102,12 +105,21 @@ classdef RealCar < CtSystem & InitDeinitObject
             obj.steering_pub = rospublisher('/car/actuator_steering_update',rostype.std_msgs_Float64);
             obj.steering_msg = rosmessage(obj.steering_pub);         
             
-            obj.sub = rossubscriber('/car/fix', rostype.sensor_msgs_NavSatFix, @gpsCallback);
+            obj.gps_sub = rossubscriber('/car/fix', rostype.sensor_msgs_NavSatFix, @gpsCallback);
             
+            obj.imu_sub = rossubscriber('/car/imu_readings', rostype.sensor_msgs_Imu, @imuCallback);
+            obj.mag_sub = rossubscriber('/car/mag_readings', rostype.sensor_msgs_MagneticField, @magCallback);
+
             % Initialize origin
-            msg = receive(obj.sub);
-            obj.lat0 = msg.Latitude;
-            obj.lon0 = msg.Longitude;         
+            msg_gps = receive(obj.gps_sub);
+            obj.lat0 = msg_gps.Latitude;
+            obj.lon0 = msg_gps.Longitude;
+            
+            msg_mag = receive(obj.mag_sub);
+            obj.yaw0 = atan2(...
+                msg_mag.MagneticField_.Y,...
+                msg_mag.MagneticField_.X...
+                );
         end
         
         function fakeDotX = sendCommand(obj,t,u)
@@ -139,6 +151,9 @@ classdef RealCar < CtSystem & InitDeinitObject
             global car_lon
             global gps_new_data
             
+            global imu_data
+            global imu_new_data
+            
             if gps_new_data == 1
                 [x1, x2] = latlon2carthesian(obj.lat0, obj.lon0, car_lat, car_lon);
                 
@@ -151,6 +166,18 @@ classdef RealCar < CtSystem & InitDeinitObject
                 y = [];   
             end
             
-        end     
+            if imu_new_data == 1
+                y(3) = imu_data.accelerometer(1);   % x acceleration
+                y(4) = imu_data.accelerometer(2);   % y acceleration
+                y(5) = imu_data.gyroscope(3);       % z angular rate
+                yaw = atan2(...                     % yaw angle from magnetometer readings
+                    imu_data.magnetometer(2),...
+                    imu_data.magnometer(1)...
+                    );
+                y(6) = yaw - obj.yaw0;
+            end
+            
+        end % function
+                
     end     % methods
 end         % class
