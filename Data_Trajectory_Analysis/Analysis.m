@@ -13,7 +13,6 @@ for i = 1:length(ret{1}.measurements(1,:))
     end
 end
 
-
 %% State observation evolution
 inputs = ret{1}.inputTrajectory;
 
@@ -30,18 +29,7 @@ vfEst = ret{1}.observerStateTrajectory(3,:);
 yawEst = ret{1}.observerStateTrajectory(4,:);
 steeringEst = ret{1}.observerStateTrajectory(5,:);
 
-% Plot GPS position
-% figure(1);
-% c = linspace(1,10,length(meas));
-% scatter(meas(1,:), meas(2,:), [], c);
-% hold all
-% quiver(meas(1,:), meas(2,:), 0.1*cos(meas(6,:)), 0.1*sin(meas(6,:)))
-% 
-% % Plot GPS estimate
-% plot(gpsEst(1,:), gpsEst(2,:), '.')
-% quiverDisplay = 1:10:length(gpsEst);
-% quiver(gpsEst(1,quiverDisplay), gpsEst(2,quiverDisplay), vfEst(quiverDisplay).*cos(yawEst(quiverDisplay)), vfEst(quiverDisplay).*sin(yawEst(quiverDisplay)))
-% title('Position');
+% Plot trajectory estimation with position measurements in gui
 ui_plot_traj(t_meas, meas, t, gpsEst, vfEst, yawEst);
 
 figure(2);
@@ -89,12 +77,12 @@ inn = ret{1}.inn;
 figure(7);
 
 yNamesList = {...
-                'gpsX', ...
-                'gpsY', ...
-                'accX', ...
-                'accY', ...
-                'gyroZ', ...
-                'yaw'};
+    'gpsX', ...
+    'gpsY', ...
+    'accX', ...
+    'accY', ...
+    'gyroZ', ...
+    'yaw'};
 
 for i = 1:yn
     subplot(yn,1,i)
