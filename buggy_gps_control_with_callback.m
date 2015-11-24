@@ -36,6 +36,17 @@ acc = zeros(3,1);
 gyro = zeros(3,1);
 mag = zeros(3,1);
 
+% figure;
+% while 1
+%     msg_mag = receive(mag_sub);
+%     phi = atan2(...
+%         msg_mag.MagneticField_.X,...
+%         msg_mag.MagneticField_.Y...
+%         );
+%     quiver(zeros(1,length(phi)),zeros(1,length(phi)),cos(phi),sin(phi))
+%     axis([-1 1 -1 1]);
+% end
+
 % Subscribe to GNSS data
 global car_lat
 global car_lon
@@ -43,40 +54,49 @@ global gps_new_data
 
 gnss_sub = rossubscriber('/car/fix', rostype.sensor_msgs_NavSatFix, @gpsCallback);
 
+
+
 % Initialize origin
 msg = receive(gnss_sub);
 lat0 = msg.Latitude;
 lon0 = msg.Longitude;
 
 % Define control loop period
-loop_period = 0.050;
+loop_period = 0.100;
 
-figure(1);
+figure;
 xPos = 0;
 yPos = 0;
-h = plot(xPos,xPos, 'o');
+phi = 0;
+h = plot(xPos,yPos, 'o');
+hold all
+hq = quiver(xPos, yPos, 0, 0);
 axis([-15 15 -15 15]);
 xlabel('Meters towards East');
 ylabel('Meters towards North');
-
+pause(0.5);
 % Stops the car when any key is pressed
 global stop_car
 stop_car = 0;
-gcf
+gcf;
 set(gcf, 'KeyPressFcn', @myKeyPressFcn);
 
 t_run = 0;
 t = 0;
 dt = 0;
 computation_time = 0;
+t_imu = 0;
+t_gps = 0;
 
 while ~stop_car
     tic;
-    
+    drawnow
     if imu_new_data == 1
-       acc = [acc imu_data.accelerometer'];
-       gyro = [gyro imu_data.gyroscope'];
-       mag = [mag imu_data.magnetometer'];
+        imu_new_data = 0;
+        acc = [acc imu_data.accelerometer'];
+        gyro = [gyro imu_data.gyroscope'];
+        mag = [mag imu_data.magnetometer'];
+        t_imu = [t_imu t];
     end
     % Check if new GNSS data is available
     if gps_new_data == 1
@@ -85,14 +105,17 @@ while ~stop_car
         xPos = [xPos x];
         yPos = [yPos y];
         set(h,'XData',xPos,'YData',yPos);
+        phi = [phi atan2(mag(1,end), mag(2,end))];
+        set(hq, 'XData',xPos,'YData',yPos, 'UData', 0.1*cos(phi), 'VData', 0.1*sin(phi));
         d = sqrt(x*x+y*y);
         fprintf('\t Longitude:%3.6f \t Latitude:%3.6f \t Altitude:%3.6f\n', msg.Longitude, msg.Latitude, msg.Altitude);
         fprintf('Coordinates:  \n\t x: %2.2f (m)\t y: %2.2f (m)\t d: %2.2f (m)\n', x, y, d);
+        t_gps = [t_gps t];
     end
     
     % Update car speed and steering angle
-    steeringAngle = -0.0;  % Between -0.54 (left) and 0.54 (right) in radians
-    carSpeed = 0;       % In m/s
+    steeringAngle = 0.1;   % Between -0.54 (left) and 0.54 (right) in radians
+    carSpeed = 1;           % In m/s
     
     if carSpeed > 3
         carSpeed = 3;
@@ -110,7 +133,7 @@ while ~stop_car
     end
     engine_msg.Data = engineValue-12.5;
     steering_msg.Data = steeringValue-0.435;
-
+    
     send(engine_pub, engine_msg)
     send(steering_pub, steering_msg)
     
@@ -123,12 +146,16 @@ while ~stop_car
     end
     
     % Wait until total loop time is elapsed
-    pause(loop_period - loop_t - 0.01);
+    while toc < loop_period
+        %
+    end
+    %     pause(loop_period - loop_t);
     dt = [dt toc];
     t_run = t_run + toc;
     t = [t t_run];
     % toc
 end
+
 
 % Stop
 engine_msg.Data = 0-12.5;
@@ -138,6 +165,11 @@ steering_msg.Data = 0-0.435;
 send(engine_pub, engine_msg)
 send(steering_pub, steering_msg)
 
+phi = atan2(mag(2,:),-mag(1,:));
+hold all
+figure;
+quiver(zeros(1,length(phi)),zeros(1,length(phi)),cos(phi),sin(phi))
+
 % pause(1);
-% 
+%
 % rosshutdown;
