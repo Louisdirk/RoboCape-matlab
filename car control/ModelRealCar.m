@@ -31,7 +31,7 @@ classdef ModelRealCar < CtSystem & InitDeinitObject & ParameterizedCtSystem
             elseif obj.ny == 3
                 obj.h = @(t,x) x([1,2,4]);
             elseif obj.ny == 6
-                obj.h = @(t,x) x([1,2,4]);
+                obj.h = @(t,x,u) obj.hh(t,x,u);
             end
             
             parameterPointer = 1;         
@@ -60,6 +60,27 @@ classdef ModelRealCar < CtSystem & InitDeinitObject & ParameterizedCtSystem
             end
             
         end
+        function y = hh(obj, t, x, u)
+            kv = obj.parameters(1);
+            kf = obj.parameters(2);
+            gv = obj.parameters(3);
+            gf = obj.parameters(4);
+            
+            lr = obj.lr;
+            l  = obj.l;
+            
+            beta = @(x)atan((lr/l)*tan(x(5)));
+            
+            % Output vector y = h(x,u)
+            y = [
+                x(1);
+                x(2);
+                -kf*(x(3)-gv*u(1));
+                x(3)^2*cos(beta(x))*tan(x(5))/l;
+                x(3)*cos(beta(x))*tan(x(5))/l;
+                x(4)
+            ];
+        end
         
         function dx = parametricF(obj,t,x,u,p)
             
@@ -76,7 +97,7 @@ classdef ModelRealCar < CtSystem & InitDeinitObject & ParameterizedCtSystem
                 cos(x(4)+beta(x))*x(3);         % xDot
                 sin(x(4)+beta(x))*x(3);         % yDot
                 -kv*(x(3)-gv*u(1));             % vDot     (first order model approximation)
-                (x(3)/l)*cos(beta(x)*tan(x(4)));% phiDot
+                 (x(3)/l)*cos(beta(x))*tan(x(5));% phiDot
                 -kd*(x(5)-gdelta*u(2));         % deltaDot (first order model approximation)
                 ];
         end

@@ -49,6 +49,7 @@ classdef CarController < Controller
         pdDDot;
         epsilon;
         lr;
+        l;
         K=eye(2);
         kxi = 1;
         
@@ -116,6 +117,12 @@ classdef CarController < Controller
                             
                             parameterPointer = parameterPointer+2;
                             
+                        case 'l'
+                            
+                            obj.l = varargin{parameterPointer+1};
+                            
+                            parameterPointer = parameterPointer+2;
+                            
                         case 'u1sat'
                             
                             obj.u1sat = varargin{parameterPointer+1};
@@ -147,7 +154,7 @@ classdef CarController < Controller
             lr      = obj.lr;
             K       = obj.K;
             kxi     = obj.kxi;
-            
+            l       = obj.l;
             pd      = obj.pd(t);
             pdDot   = obj.pdDot(t);
             pdDDot  = obj.pdDDot(t);
@@ -157,15 +164,16 @@ classdef CarController < Controller
             e  = hatE(1:2);
             xi = hatE(3);
             
+            beta = @(x)atan((lr/l)*tan(x(5)));
             
             R = [cos(x(4)+x(5)),-sin(x(4)+x(5));
                 sin(x(4)+x(5)), cos(x(4)+x(5))];
             
             invDelta = [1,epsilon(2)/epsilon(1);0,epsilon(1)];
             
-            u2 = -(x(3)/lr)*sin(x(5))+[0,1/epsilon(1)]*(-K*e+R'*pdDot);
+            u2 = -(x(3)/l)*cos(beta(x))*tan(x(5))+[0,1/epsilon(1)]*(-K*e+R'*pdDot);
             
-            omega =(x(3)/lr)*sin(x(5))+u2;
+            omega =(x(3)/l)*cos(beta(x))*tan(x(5))+u2;
             
             S = [0   , -omega;
                 omega, 0     ];
@@ -187,10 +195,10 @@ classdef CarController < Controller
             epsilon = obj.epsilon;
             
             invDelta = [1, epsilon(2)/epsilon(1);
-                        0, epsilon(1)           ];
+                0, epsilon(1)           ];
             
             R = [cos(x(4)+x(5)),-sin(x(4)+x(5));
-                 sin(x(4)+x(5)), cos(x(4)+x(5))];
+                sin(x(4)+x(5)), cos(x(4)+x(5))];
             
             e = R'*(x(1:2)-pd)+epsilon;
             
