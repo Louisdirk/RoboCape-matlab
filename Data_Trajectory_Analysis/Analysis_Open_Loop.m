@@ -29,9 +29,9 @@ for i = 1:length(t)
     dxState = [
         cos(x(4)+beta(x))*x(3)*Ts;          % xDot
         sin(x(4)+beta(x))*x(3)*Ts;          % yDot
-        0 ;                                 % vDot     (first order model approximation)
+        0 ;                                 % vDot  compute with "filter"
         (x(3)/l)*cos(beta(x))*tan(x(5))*Ts; % phiDot
-        0;                                  % deltaDot (first order model approximation)
+        0;                                  % deltaDot compute with "filter"
         ];
     x = x+dxState;
     x(3) = inputsF(1,i);

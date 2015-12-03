@@ -1,5 +1,9 @@
 
 close all
+
+l = 0.34;
+lr = 0.17;
+
 %% Extract measurements
 
 mask = isnan(ret{1}.measurements(1,:));
@@ -9,12 +13,16 @@ for i = 1:length(ret{1}.measurements(1,:))
     if mask(i) == 0
         meas(:,j) = ret{1}.measurements(:,i);
         t_meas(j) = ret{1}.time(i);
+        if meas(1:2,j) == ret{1}.observerStateTrajectory(1:2,i)
+            meas(1:2,j) = [NaN;NaN];
+        end
         j = j+1;
     end
 end
 
 %% State observation evolution
 inputs = ret{1}.inputTrajectory;
+inputs(2,:) = 0.5*inputs(2,:);
 
 Ts = t(2)-t(1);
 % Steering model filter
@@ -48,10 +56,12 @@ ylabel('Yaw angle (rad)');
 legend('Estimated', 'Measured');
 
 figure(4);
-plot(t,unwrap(steeringEst),t, inputs(2,:), t, inputsF(2,:));
+steeringFromGyro = asin(meas(5,:)*l./0.8);
+plot(t, inputs(2,:), t, inputsF(2,:), t_meas, steeringFromGyro, t,unwrap(steeringEst));
 title('Steering angle');
 xlabel('Time (s)');
 ylabel('Steering angle (rad)');
+legend('Desired', '1st order model', 'Value from gyro, speed and geometry', 'State estimate');
 
 %% Imu readings
 figure(5);
@@ -86,10 +96,25 @@ yNamesList = {...
 
 for i = 1:yn
     subplot(yn,1,i)
-    plot(t,inn(i,:));
+    stem(t,inn(i,:));
     ylabel(yNamesList{i});
 end
 
 xlabel('Time (s)');
 subplot(yn,1,1)
 title('Innovation');
+
+%% Path from yaw estimate
+posFromYaw_mem = zeros(2,1);
+posFromYaw = 0;
+for i = 1:length(t)
+    dx = [
+        cos(yawEst(i))*vfEst(i)*Ts;          % xDot
+        sin(yawEst(i))*vfEst(i)*Ts;          % yDot
+        ];
+    posFromYaw = posFromYaw + dx;
+    posFromYaw_mem = [posFromYaw_mem posFromYaw];
+end
+
+figure;
+plot(posFromYaw_mem(1,2:end),posFromYaw_mem(2,2:end));
