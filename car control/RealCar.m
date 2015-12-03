@@ -117,11 +117,20 @@ classdef RealCar < CtSystem & InitDeinitObject
             obj.lat0 = msg_gps.Latitude;
             obj.lon0 = msg_gps.Longitude;
             
-            msg_mag = receive(obj.mag_sub);
-            obj.yaw0 = atan2(...
-                msg_mag.MagneticField_.X,...
-                msg_mag.MagneticField_.Y...
-                );
+            disp('Initialize heading...');
+            yawSum = 0;
+            nCompass_samples = 50;
+            for i = 1:nCompass_samples
+                msg_mag = receive(obj.mag_sub);
+                yawSum = yawSum + atan2(...
+                    msg_mag.MagneticField_.X,...
+                    msg_mag.MagneticField_.Y...
+                    );
+            end
+            obj.yaw0 = yawSum/nCompass_samples;
+            
+            disp('Initial heading');
+            disp(obj.yaw0);
             
             global gps_new_data
             global imu_new_data
@@ -176,12 +185,11 @@ classdef RealCar < CtSystem & InitDeinitObject
             drawnow;
             
             if isempty(obj.oldMeasVector)
-                y = zeros(obj.ny,1);
-            else
-                y = obj.oldMeasVector;              % Keep old measurements
-                y(1:2) = obj.stateObserver.x(1:2);  % Use position estimate
-                y(6) = obj.stateObserver.x(4);      % Use the yaw estimate
+                obj.oldMeasVector = zeros(6,1);
             end
+            y = obj.oldMeasVector;              % Keep old measurements
+            y(1:2) = obj.stateObserver.x(1:2);  % Use position estimate
+            y(6) = obj.stateObserver.x(4);      % Use the yaw estimate
             
             
             if gps_new_data == 1
@@ -206,11 +214,20 @@ classdef RealCar < CtSystem & InitDeinitObject
                 y(3) = imu_data.accelerometer(1);   % x acceleration
                 y(4) = imu_data.accelerometer(2);   % y acceleration
                 y(5) = imu_data.gyroscope(3);       % z angular rate
-                yaw = atan2(...                     % yaw angle from magnetometer readings
+                
+                yawMeas = atan2(...                     % yaw angle from magnetometer readings
                     imu_data.magnetometer(1),...
                     imu_data.magnetometer(2)...
                     );
-                y(6) = yaw;
+                yawEst = obj.stateObserver.x(4);
+
+                if abs(yawMeas - yawEst) > 0.6
+                    yaw = yawEst;   % Measurement is an outliser
+                else
+                    yaw = yawMeas;
+                end
+                
+                y(6) = yawMeas + 1.6167; % Adjust magnetic declination (Renens: 1°37'East)
                 %                 fprintf('\nNew IMU measurements\n');
             end
             

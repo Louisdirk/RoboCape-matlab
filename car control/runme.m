@@ -28,7 +28,7 @@ car.sendCommand(0,[0 0]);
 model = ModelRealCar(...                  % Car model, state vector: [position x; position y; forward velocity; heading; steering angle]
     'ny',ny,...                           % Number of outputs
     'InitialCondition',0.1*ones(5,1),...  % Initial state vector
-    'Parameters',[(1/2);(1/0.1);1;1]... % Parameters first order models (xDot = -k*(x-g*u)):  [k velocity; k steering angle; g velocity; g steering angle;]
+    'Parameters',[(1/2);(1/0.1);1;0.5]... % Parameters first order models (xDot = -k*(x-g*u)):  [k velocity; k steering angle; g velocity; g steering angle;]
     );
 
 model.initialConditions(1:2)=[12;0];
@@ -38,10 +38,10 @@ model.initialConditions(1:2)=[12;0];
 % mode 1 > simulation
 % mode 2 > real vehicle
 mode = 2;
-var_gps = (1)^2;            % m
+var_gps = (0.01)^2;            % m
 var_acc = (0.05)^2;         % m/s^2
 var_gyro = (0.01)^2;        % rad/sec
-var_mag = (45/180*pi)^2;    % rad
+var_mag = (60/180*pi)^2;    % rad
 
 % EFK analysis 17nov2015
 % var_gps = (3)^2;            % m
@@ -52,7 +52,7 @@ var_mag = (45/180*pi)^2;    % rad
 % Qnoise = diag(([0.5;0.5;0.2;10*pi/180;5*pi/180]).^2);
 
 Rnoise = diag([var_gps var_gps var_acc var_acc var_gyro var_mag]);
-Qnoise = diag(([0.5;0.5;0.2;10*pi/180;2*pi/180]).^2);
+Qnoise = diag(([0.5;0.5;0.2;10*pi/180;5*pi/180]).^2);
 
 switch mode
     case 1
@@ -66,7 +66,7 @@ switch mode
         noisyModel = NoisyModelRealCar(Qnoise,Rnoise,...                  % Car model, state vector: [position x; position y; forward velocity; heading; steering angle]
             'ny',ny,...                           % Number of outputs
             'InitialCondition',0.1*ones(5,1),...  % Initial state vector
-            'Parameters',[(1/0.7);(1/0.1);1;1]... % Parameters first order models (xDot = -k*(x-g*u)):  [k velocity; k steering angle; g velocity; g steering angle;]
+            'Parameters',[(1/2);(1/0.1);1;0.5]... % Parameters first order models (xDot = -k*(x-g*u)):  [k velocity; k steering angle; g velocity; g steering angle;]
             );
         
         sys = noisyModel;
@@ -98,6 +98,9 @@ sys.stateObserver = EkfFilter(DtSystem(model,dt),...
     'StateNoiseMatrix' , Qnoise...
     );
 
+% sys.stateObserver.initialConditions(4) = pi/2;
+sys.stateObserver.initialConditions(4) = car.yaw0;
+
 % if ny == 2
     sys.stateObserver.Rekf  =  Rnoise;
 % else
@@ -113,7 +116,7 @@ extraLogs= {InlineLog('lyapVar',@(t,a,varargin)a.controller.originalController.g
 extraLogs= {};
 
 a = VirtualArena(sys,...
-    'StoppingCriteria'   ,@(t,as)t>30,...
+    'StoppingCriteria'   ,@(t,as)t>20,...
     'StepPlotFunction'   ,@(agentsList,hist,plot_handles,i)stepPlotFunction(agentsList,hist,plot_handles,i,pd,model), ...
     'DiscretizationStep' ,dt,...
     'ExtraLogs'          ,{MeasurementsLog(ny),InlineLog('inn',@(t,a,varargin)a.stateObserver.lastInnovation),extraLogs{:}},...
