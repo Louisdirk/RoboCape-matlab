@@ -152,7 +152,7 @@ classdef RealCar < CtSystem & InitDeinitObject
                 carSpeed = 3;
             end
             %             steeringValue = -0.962*steeringAngle.^2 + 1.434*steeringAngle;
-            steeringValue = steeringAngle;
+            steeringValue = steeringAngle*2;
             engineValue = 0.84*carSpeed + 2.543;
             
             if carSpeed < 0.5
@@ -197,8 +197,8 @@ classdef RealCar < CtSystem & InitDeinitObject
             
             if imu_new_data == 1                
                 imu_new_data = 0;
-                y(3) = imu_data.accelerometer(1);   % x acceleration
-                y(4) = imu_data.accelerometer(2);   % y acceleration
+%                 y(3) = imu_data.accelerometer(2);   % x acceleration (y IMU's axis)
+%                 y(4) = -imu_data.accelerometer(1);   % y acceleration (x IMU's axis)
                 y(5) = imu_data.gyroscope(3);       % z angular rate
                 
 %                 yawMeas = atan2(...                     % yaw angle from magnetometer readings
@@ -213,7 +213,8 @@ classdef RealCar < CtSystem & InitDeinitObject
 %                     yaw = yawMeas;
 %                 end
                 
-%                 y(6) = yawMeas + 1.6167; % Adjust magnetic declination (Renens: 1°37'East)
+%                 y(6) = yawMeas + 1.6167*pi/180; % Adjust magnetic declination (Renens: 1°37'East)
+%                 y(6) = yawMeas;
 %                 fprintf('\nNew IMU measurements\n');
             end
             

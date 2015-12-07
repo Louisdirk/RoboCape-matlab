@@ -8,9 +8,9 @@ epsilon  = [0.2;0];
 
 
 %% DESIRED TRAJECTORY
-loopTime = 10;
+loopTime = 30;
 pathType = 1;
-scaleSize = 10; % Increase for bigger shapes
+scaleSize = 5; % Increase for bigger shapes
 switch pathType
     case 1
         pd       = @(t)                   [  1.4*cos(0.5*2*pi/loopTime*t)      ; 0.5*sin(2*pi/loopTime*t)]*0.9*scaleSize;
@@ -22,23 +22,21 @@ end
 
 ny    = 6; % Number outputs (2 for position, 3 for position and heading (in radiant)
 
-car   = RealCar('ny',ny,'dt',dt); %
-car.sendCommand(0,[0 0]);
-
 model = ModelRealCar(...                  % Car model, state vector: [position x; position y; forward velocity; heading; steering angle]
     'ny',ny,...                           % Number of outputs
     'InitialCondition',0.1*ones(5,1),...  % Initial state vector
-    'Parameters',[(1/2);(1/0.1);1;0.5]... % Parameters first order models (xDot = -k*(x-g*u)):  [k velocity; k steering angle; g velocity; g steering angle;]
+    'Parameters',[(1/2);(1/0.1);1;1]... % Parameters first order models (xDot = -k*(x-g*u)):  [k velocity; k steering angle; g velocity; g steering angle;]
     );
 
-model.initialConditions(1:2)=[12;0];
+model.initialConditions(1:2)=[13;0];
 
 
 %% MODE
 % mode 1 > simulation
 % mode 2 > real vehicle
-mode = 2;
-var_gps = (0.01)^2;            % m
+% mode 3 > noisy model (simulation)
+mode = 3;
+var_gps = (0.01)^2;         % m
 var_acc = (0.05)^2;         % m/s^2
 var_gyro = (0.01)^2;        % rad/sec
 var_mag = (60/180*pi)^2;    % rad
@@ -52,23 +50,25 @@ var_mag = (60/180*pi)^2;    % rad
 % Qnoise = diag(([0.5;0.5;0.2;10*pi/180;5*pi/180]).^2);
 
 Rnoise = diag([var_gps var_gps var_acc var_acc var_gyro var_mag]);
-Qnoise = diag(([0.5;0.5;0.2;10*pi/180;5*pi/180]).^2);
+Qnoise = diag(([0.05;0.05;0.5;5*pi/180;2*pi/180]).^2);
 
 switch mode
     case 1
         sys = model;
         extraVAParams  = {'RealTime' ,0,'Integrator',EulerForward()};
     case 2
+        car   = RealCar('ny',ny,'dt',dt);
+        car.sendCommand(0,[0 0]);
         sys = car;
         extraVAParams  = {'RealTime' ,1,'Integrator',EulerForward()};
     case 3
-        Rnoise = 0.02^2*eye(ny);
-        noisyModel = NoisyModelRealCar(Qnoise,Rnoise,...                  % Car model, state vector: [position x; position y; forward velocity; heading; steering angle]
+        noisyModel = NoisyModelRealBuggy(Qnoise,Rnoise,...                  % Car model, state vector: [position x; position y; forward velocity; heading; steering angle]
             'ny',ny,...                           % Number of outputs
             'InitialCondition',0.1*ones(5,1),...  % Initial state vector
-            'Parameters',[(1/2);(1/0.1);1;0.5]... % Parameters first order models (xDot = -k*(x-g*u)):  [k velocity; k steering angle; g velocity; g steering angle;]
+            'Parameters',[(1/2);(1/0.1);1;1]... % Parameters first order models (xDot = -k*(x-g*u)):  [k velocity; k steering angle; g velocity; g steering angle;]
             );
-        
+        noisyModel.initialConditions(1:2)=[0;0];
+        noisyModel.initialConditions(4) = pi/2;
         sys = noisyModel;
         extraVAParams  = {'RealTime' ,0,EulerForward()};
 end
@@ -83,23 +83,26 @@ cdcController = CarController(...
     'Ke',2,'kxi',2 ...                        % Gains of the controller (higher values >> mode aggressive)
     );
 
-% sys.controller =  NewCdcControllerAdapter(cdcController, model,10*1.5,10*pi/2);
+sys.controller =  NewCdcControllerAdapter(cdcController, model,1,100*0.25*pi/180);
 
 % Open loop control
 % InlineController(@(t,x)[speed; steeringAngle])
-% sys.controller = InlineController(@(t,x)[0.8;0.5*cos(2*t)]);
-sys.controller = KeyboardController();
+% sys.controller = InlineController(@(t,x)[1.5;0.5*1]);
+
+% sys.controller = InlineController(@(t,x) clothoidPath(t));
+% sys.controller = KeyboardController();
 
 
 %% STATE OBSERVER
+P0 = diag([(1)^2 (1)^2 (0.01)^2 (180*pi/180)^2 (2*pi/180)^2]);
 
 sys.stateObserver = EkfFilter(DtSystem(model,dt),...
-    'InitialCondition' , [0.01*ones(model.nx,1);reshape(eye(model.nx),model.nx^2,1)],...
+    'InitialCondition' , [0.01*ones(model.nx,1);reshape(P0,model.nx^2,1)],...
     'StateNoiseMatrix' , Qnoise...
     );
 
 % sys.stateObserver.initialConditions(4) = pi/2;
-sys.stateObserver.initialConditions(4) = car.yaw0;
+sys.stateObserver.initialConditions(4) = sys.yaw0;
 
 % if ny == 2
     sys.stateObserver.Rekf  =  Rnoise;
@@ -116,7 +119,7 @@ extraLogs= {InlineLog('lyapVar',@(t,a,varargin)a.controller.originalController.g
 extraLogs= {};
 
 a = VirtualArena(sys,...
-    'StoppingCriteria'   ,@(t,as)t>20,...
+    'StoppingCriteria'   ,@(t,as)t>60,...
     'StepPlotFunction'   ,@(agentsList,hist,plot_handles,i)stepPlotFunction(agentsList,hist,plot_handles,i,pd,model), ...
     'DiscretizationStep' ,dt,...
     'ExtraLogs'          ,{MeasurementsLog(ny),InlineLog('inn',@(t,a,varargin)a.stateObserver.lastInnovation),extraLogs{:}},...
@@ -127,7 +130,9 @@ simTic = tic;
 
 %profile on
 ret = a.run();
-car.sendCommand(0,[0 0]);
+if mode == 2 % If real car...
+    car.sendCommand(0,[0 0]);
+end
 simTime = toc(simTic);
 fprintf('Sim Time : %d',simTime);
 %profile viewer
