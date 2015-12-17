@@ -12,13 +12,19 @@ classdef CircularTrajectory < handle
     
     methods
         
-        function obj = CircularTrajectory(center,radius,phi,alpha,vf)
+        function obj = CircularTrajectory(center,radius,phi,alpha,vf,rotation)
             
             obj.center = center;
             obj.radius = radius;
-            obj.start_angle = phi - pi/2;
+            
+            if rotation == 1
+                obj.start_angle = phi - pi/2;
+            else
+                obj.start_angle = phi + pi/2;
+            end
+                
             obj.alpha = alpha;
-            obj.omega = vf/radius;
+            obj.omega = vf/radius*rotation;
             
         end % CircularTrajectory
         
@@ -34,7 +40,7 @@ classdef CircularTrajectory < handle
             vel = [-r*w*sin(w*t + s),   r*w*cos(w*t + s)   ];
             acc = [-r*w^2*cos(w*t + s), -r*w^2*sin(w*t + s)];
             
-            if (w*t) >= (pi - 2*a)
+            if abs(w*t) >= (pi - 2*a)
                 obj.end_of_traj = 1;
             else
                 obj.end_of_traj = 0;

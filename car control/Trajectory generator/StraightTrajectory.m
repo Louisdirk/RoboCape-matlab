@@ -70,13 +70,14 @@ classdef StraightTrajectory < handle
             vt1 = obj.vt1;
             xt1 = obj.xt1;
             xt2 = obj.xt2;
+            xt3 = obj.xt3;
             
             T1 = obj.T1;
             T2 = obj.T2;
             T3 = obj.T3;
             
             x0 = 0;
-            xf = obj.l;
+            xf = xt3;
             v0 = obj.v0;
             vf = obj.vf; 
             
