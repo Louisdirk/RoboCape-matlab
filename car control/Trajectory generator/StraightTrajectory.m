@@ -122,6 +122,10 @@ classdef StraightTrajectory < handle
             ret = obj.end_of_traj;
             
         end
+        
+        function restart(obj)
+            obj.end_of_traj = 0;
+        end
     end
     
 end

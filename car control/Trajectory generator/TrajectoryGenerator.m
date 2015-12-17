@@ -14,7 +14,14 @@ classdef TrajectoryGenerator < handle
         traj = {};
         
         tP = 0;
+        tPmem = [];
         currentPart = 1;
+        
+        currentTime = -1;
+        currentPos = [0;0];
+        currentVel = [0;0];
+        currentAcc = [0;0];
+        
     end % properties
     
     
@@ -27,11 +34,11 @@ classdef TrajectoryGenerator < handle
             obj.nCheckpoints = nCheckpoints;
             vCircle = sqrt(aCircle*radius);         % Max speed in curve
             
-            checkpointsSpeed = min(checkpointsSpeed, vCircle*ones(nCheckpoints,1));
-            
             if size(checkpoints,1) ~= length(checkpointsSpeed)
                 error('size(checkpointsSpeed,1) ~= length(checkpoints)');
             end
+            
+            checkpointsSpeed = min(checkpointsSpeed, vCircle*ones(nCheckpoints,1));
             
             obj.checkpointsSpeed = checkpointsSpeed;
             obj.radius = radius;
@@ -127,11 +134,17 @@ classdef TrajectoryGenerator < handle
             
             nSegments = nCheckpoints-1;
             nCircles = nCheckpoints-1;
-            currentPart = obj.currentPart;
             
             % Load
             tP = obj.tP;
             currentPart = obj.currentPart;
+            if t == 0
+                currentPart = 1;
+                tP = 0;
+                for n = 1:(nSegments + nCircles-1)
+                    obj.traj{n}.restart();
+                end
+            end
             
             % Get trajectory values
             if (obj.traj{currentPart}.isEnd() == 1) && (currentPart < (nSegments + nCircles-1))
@@ -144,8 +157,54 @@ classdef TrajectoryGenerator < handle
             % Store
             obj.tP = tP;
             obj.currentPart = currentPart;
+            obj.tPmem = [obj.tPmem t];
             
         end % getTrajFromTime
+        
+        function currentPos = getPosFromTime(obj,t)
+            
+            if t == obj.currentTime
+                currentPos = obj.currentPos;
+            else
+                obj.currentTime = t;
+                [currentPos, currentVel, currentAcc] = getTrajFromTime(obj,t);
+                obj.currentPos = currentPos';
+                obj.currentVel = currentVel';
+                obj.currentAcc = currentAcc';
+                currentPos = currentPos';
+            end
+        end
+        
+        function currentVel = getVelFromTime(obj,t)
+            
+            if t == obj.currentTime
+                currentVel = obj.currentVel;
+            else
+                obj.currentTime = t;
+                [currentPos, currentVel, currentAcc] = getTrajFromTime(obj,t);
+                obj.currentPos = currentPos;
+                obj.currentVel = currentVel;
+                obj.currentAcc = currentAcc;
+                currentVel = currentVel';
+            end
+            
+        end
+        
+        function currentAcc = getAccFromTime(obj,t)
+            
+            if t == obj.currentTime
+                currentAcc = obj.currentAcc;
+            else
+                obj.currentTime = t;
+                [currentPos, currentVel, currentAcc] = getTrajFromTime(obj,t);
+                obj.currentPos = currentPos;
+                obj.currentVel = currentVel;
+                obj.currentAcc = currentAcc;
+                currentAcc = currentAcc';
+            end
+            
+        end
+        
         
     end % methods
     

@@ -8,33 +8,35 @@
 clear all
 close all
 
-radius = 1;
+radius = 2;
 aCircle = 0.3;                            % Maximum centripetal acceleration
 
-aMax = 1;                               % Maximum forward acceleration
+aMax = 0.1;                               % Maximum forward acceleration
 vSat = 2;                               % Maximal velocity
 
-nCheckpoints = 8;
+nCheckpoints = 5;
 p = zeros(nCheckpoints, 2);
 
 p(1,:) = [0, 0];
 p(2,:) = [5, 0];
-p(3,:) = [7, 2];
-p(4,:) = [4, 4];
-p(5,:) = [6, 6];
-p(6,:) = [4, 8];
-p(7,:) = [2, 6];
-p(8,:) = [0, 0];
+p(3,:) = [5, 8];
+p(4,:) = [0, 8];
+p(5,:) = [0, 0];
+% p(6,:) = [4, 8];
+% p(7,:) = [2, 6];
+% p(8,:) = [0, 0];
 
 vCircle = sqrt(aCircle*radius);         % Max speed in curve
 
-pv = [0; vCircle; vCircle; vCircle; vCircle; vCircle; vCircle; 0]; % Checkpoint velocities
+pv = [0; vCircle; vCircle; vCircle; 0]; % Checkpoint velocities
+
+%%
 
 traj = TrajectoryGenerator(p,pv,radius,aCircle,aMax,vSat);
 
 %% Run simulation
 
-t = 0:0.06:30;
+t = 0:0.06:10;
 for k = 1:length(t)
     [pSim(k,:), vSim(k,:), aSim(k,:)] = traj.getTrajFromTime(t(k));
     pSimProj(k) = norm(pSim(k,:));

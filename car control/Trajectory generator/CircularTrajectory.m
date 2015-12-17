@@ -52,6 +52,10 @@ classdef CircularTrajectory < handle
             ret = obj.end_of_traj;
         end % isEnd
         
+        function restart(obj)
+            obj.end_of_traj = 0;
+        end
+        
     end % methods
     
 end % class
