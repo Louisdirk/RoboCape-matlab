@@ -11,6 +11,8 @@ h3 = plot(gpsEst(1,:), gpsEst(2,:), '.');
 quiverDisplay = 1:10:length(gpsEst);
 h4 = quiver(gpsEst(1,quiverDisplay), gpsEst(2,quiverDisplay), vfEst(quiverDisplay).*cos(yawEst(quiverDisplay)), vfEst(quiverDisplay).*sin(yawEst(quiverDisplay)));
 title('Position');
+xlabel('x^l');
+ylabel('y^l');
 
 span = [0 t_est(end)];
 varname = 'Time';
