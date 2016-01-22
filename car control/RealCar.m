@@ -143,26 +143,39 @@ classdef RealCar < CtSystem & InitDeinitObject
             %% Send command u(t) to the vehicle
             
             % Update car speed and steering angle
-            steeringAngle = u(2);                   % Between -0.5 (left) and 0.5 (right)
-            carSpeed   = u(1);                        % Up to 10
+            steeringAngle = u(2);                   % Between -0.35 (left) and 0.35 (right)
+            carSpeed   = u(1);                      % Up to 10
             
+            if carSpeed < 0
+                carSpeed = carSpeed*2;
+            end
             
             % Input command failsafe
-            if carSpeed > 3
-                carSpeed = 3;
+            if carSpeed > 6
+                carSpeed = 6;
+            elseif carSpeed < -6
+                carSpeed = -6;
             end
-            %             steeringValue = -0.962*steeringAngle.^2 + 1.434*steeringAngle;
-            steeringValue = steeringAngle*2;
-            engineValue = 0.84*carSpeed + 2.543;
             
-            if carSpeed < 0.5
+%             if t<5
+%                 carSpeed = min(carSpeed,1);
+%             end
+%             steeringValue = 1.2*steeringAngle;
+            steeringValue = 1.463*steeringAngle + sign(steeringAngle)*0.059;
+%             f = 1.4630*x - 0.059;
+%             steeringValue = steeringAngle*2;
+%             engineValue = 0.84*carSpeed + 2.543;
+            engineValue = 0.9*carSpeed + 2.543;
+            % old value *1.12
+            
+            if abs(carSpeed) < 0.1
                 engineValue = 0;
             end
             
-            % Output failsafe
-            if engineValue > 8
-                engineValue = 8;
-            end
+%             % Output failsafe
+%             if engineValue > 8
+%                 engineValue = 8;
+%             end
             
             obj.engine_msg.Data = engineValue-12.5;
             obj.steering_msg.Data = -steeringValue-0.435;
@@ -184,9 +197,14 @@ classdef RealCar < CtSystem & InitDeinitObject
             drawnow;
             
             y = [NaN NaN NaN NaN NaN NaN]';
+                
             
             if gps_new_data == 1
                 [x1, x2] = latlon2carthesian(obj.lat0, obj.lon0, car_lat, car_lon);
+                if t < 0.4
+                    obj.lat0 = car_lat;
+                    obj.lon0 = car_lon;
+                end
                 
 %                 d = sqrt(x1*x1+x2*x2);
                 
