@@ -188,6 +188,7 @@ classdef CarController2 < Controller
             e  = hatE(1:2);
             z = hatE(3);
             
+            
             beta = @(x) atan((lr/l)*tan(x(5)));
             phiDot = @(x) (x(3)/l)*cos(beta(x))*tan(x(5));
             
@@ -217,7 +218,8 @@ classdef CarController2 < Controller
                 deltaDot/kd + x(5)];
             
             if ~isempty(obj.u1sat)
-                u(1) = max(min(u(1),obj.u1sat),0);
+%                 u(1) = max(min(u(1),obj.u1sat),0);
+                    u(1) = max(min(u(1),obj.u1sat),-obj.u1sat);
             end
             if ~isempty(obj.u2sat)
                 u(2) = max(min(u(2),obj.u2sat),-obj.u2sat);
