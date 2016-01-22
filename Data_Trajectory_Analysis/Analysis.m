@@ -1,8 +1,20 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Author: Mathieu Bresciani
+% Description:
+%   This codes extracts data recorded in Virtual Arena and make plots for
+%   analysis
+%
+% Dependencies:
+%   - ui_plot_traj.m
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 close all
 
 l = 0.34;
 lr = 0.17;
+
+tv = 1.8;
+tdelta = 0.1;
 
 %% Extract measurements
 
@@ -25,16 +37,15 @@ inputs = ret{1}.inputTrajectory;
 Ts = t(2)-t(1);
 
 % Velocity model filter
-Fs1 = tf(1,[1.8 1]);
+Fs1 = tf(1,[tv 1]);
 Fz1 = c2d(Fs1,Ts);
 inputsF(1,:) = filter(Fz1.num{1}, Fz1.den{1},inputs(1,:));
 
 % Steering model filter
-Fs = tf(1,[0.1 1]);
-Fz = c2d(Fs,Ts);
-inputsF(2,:) = filter(Fz.num{1}, Fz.den{1},inputs(2,:));
+Fs2 = tf(1,[tdelta 1]);
+Fz2 = c2d(Fs2,Ts);
+inputsF(2,:) = filter(Fz2.num{1}, Fz2.den{1},inputs(2,:));
 
-% figure; plot(t,inputs(2,:),t,inputsF(2,:))
 
 gpsEst = ret{1}.observerStateTrajectory(1:2,:);
 vfEst = ret{1}.observerStateTrajectory(3,:);
@@ -47,20 +58,6 @@ sigEst = sqrt(varEst);
 % Plot trajectory estimation with position measurements in gui
 ui_plot_traj(t_meas, meas, t, gpsEst, vfEst, yawEst);
 
-% x0 = 0;
-% y0 = 0;
-% k = 1;
-% for i = 1:length(t_meas)
-%     if not(isnan(meas(1,i)))
-%         dxGps(i) = sqrt((x0-meas(1,i))^2 + (y0-meas(2,1))^2);
-%         x0 = meas(1,i);
-%         y0 = meas(2,1);
-%         tGps(k) = t_meas(i);
-%         k = k+1;
-%     end
-% end
-
-% vfGps = dxGps*5; % GPS @ 5Hz
 figure(2);
 plot(t, inputs(1,:), t, inputsF(1,:),t,vfEst);
 hold all
@@ -82,9 +79,7 @@ ylabel('Yaw angle (rad)');
 legend('Estimated', 'Confidence interval', '', 'Measured');
 
 figure(4);
-
 steeringFromGyro = asin(meas(5,:)*l./vfEst(~mask));
-% sqrt(var(steeringFromGyro-inputsF(2,~mask)))*180/pi
 
 plot(t, inputs(2,:), t, inputsF(2,:), t,unwrap(steeringEst), t_meas, steeringFromGyro);
 hold all
@@ -138,7 +133,7 @@ for i = [1 2 5]
     stem(t,inn(i,:));
     ylabel(yNamesList{i});
 end
-xlim([0 50]);
+% xlim([0 50]);
 linkaxes(ax,'x');
 xlabel('Time (s)');
 % subplot(yn,1,1)
@@ -158,19 +153,21 @@ end
 
 figure;
 plot(posFromYaw_mem(1,2:end),posFromYaw_mem(2,2:end));
+title('Path from yaw and speed estimates');
 
+%% 
 figure;
-plot(t,ret{1}.observerStateTrajectory(24,:))
-legend('Yaw covariance');
+plot(t,sigEst(4,:))
+legend('Yaw std dev');
 xlabel('Time (s)');
 
 figure;
-plot(t,sqrt(ret{1}.observerStateTrajectory(6,:)))
+plot(t,sigEst(1,:))
 legend('xPos sqrt(var)');
 xlabel('Time (s)');
 
 figure;
-plot(t,sqrt(ret{1}.observerStateTrajectory(3,:)))
+plot(t,sigEst(3,:))
 legend('vf sqrt(var)');
 xlabel('Time (s)');
 
@@ -200,7 +197,7 @@ hold all
 plot(t(1:end-(windowSize-1)),IMU_Density*100,'Color',[0 0 0]);
 hold off
 ylabel('Q_{imu} (%)');
-xlim([0 50]);
+% xlim([0 50]);
 
 GPS_Tics = ~isnan(ret{1}.measurements(1,:));
 GPS_Density = conv(double(GPS_Tics), ones(1,windowSize), 'valid')/(windowSize);
@@ -210,8 +207,7 @@ plot(t(1:end-(windowSize-1)),min(GPS_Density*100*3,100),'Color',[0 0 0]);
 hold off
 xlabel('Time (s)');
 ylabel('Q_{gnss} (%)');
-xlim([0 50]);
+% xlim([0 50]);
 
-% figure; plot(diff(t(GPS_Tics)))
 figure; histogram(diff(t(IMU_Tics)),30,'Normalization','probability')
 figure; histogram(diff(t(GPS_Tics)),10)
