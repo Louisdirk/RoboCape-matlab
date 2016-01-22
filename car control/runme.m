@@ -9,7 +9,7 @@ epsilon  = [0.2;0];
 
 %% DESIRED TRAJECTORY
 loopTime = 8;
-pathType = 1;
+pathType = 4;
 scaleSize = 4; % Increase for bigger shapes
 switch pathType
     case 1
@@ -17,13 +17,23 @@ switch pathType
         pdDot    = @(t) (2*pi/loopTime)  *[ -1.4*0.5*sin(0.5*2*pi/loopTime*t)  ; 0.5*cos(2*pi/loopTime*t)]*0.9*scaleSize;
         pdDDot   = @(t) (2*pi/loopTime)^2*[ -1.4*0.5^2*cos(0.5*2*pi/loopTime*t);-0.5*sin(2*pi/loopTime*t)]*0.9*scaleSize;
     case 2
-        pd       = @(t) [1 + t ; 1 + t];
+        pp = dummyTraj();
+        pd       = @(t) pp.computePos(t);
         pdDot    = @(t) [1 ; 1];
         pdDDot   = @(t) [0 ; 0];
     case 3
         pd       = @(t) [1 + 0.1*t^3 ; 1 + t^2];
         pdDot    = @(t) [0.1*3*t^2 ; 2*t];
         pdDDot   = @(t) [0.1*6*t ; 2];
+    case 4
+        load('traj2_Osterrechichring_Austria_params_high_acceleration');
+%         load('traj_terrace');
+%         load('traj3_loopfaster2.mat');
+        traj = TrajectoryGenerator(p,pv,radius,aCircle,aMax,vSat);
+        
+        pd       = @(t) traj.getPosFromTime(t);
+        pdDot    = @(t) traj.getVelFromTime(t);
+        pdDDot   = @(t) traj.getAccFromTime(t);
 end
 
 %% VEHICLE
@@ -33,11 +43,11 @@ ny    = 6; % Number outputs (2 for position, 3 for position and heading (in radi
 model = ModelRealCar(...                  % Car model, state vector: [position x; position y; forward velocity; heading; steering angle]
     'ny',ny,...                           % Number of outputs
     'InitialCondition',0.1*ones(5,1),...  % Initial state vector
-    'Parameters',[(1/2);(1/0.1);1;1]... % Parameters first order models (xDot = -k*(x-g*u)):  [k velocity; k steering angle; g velocity; g steering angle;]
+    'Parameters',[(1/1.8);(1/0.1);1;1]... % Parameters first order models (xDot = -k*(x-g*u)):  [k velocity; k steering angle; g velocity; g steering angle;]
     );
 
 model.initialConditions(1:2)=[0;0];
-model.initialConditions(4) = pi/2;
+model.initialConditions(4) = 0;
 
 
 %% MODE
@@ -47,8 +57,8 @@ model.initialConditions(4) = pi/2;
 mode = 3;
 var_gps = (0.1)^2;         % m
 var_acc = (0.05)^2;         % m/s^2
-var_gyro = (0.01)^2;        % rad/sec
-var_mag = (60/180*pi)^2;    % rad
+var_gyro = (0.1)^2;        % rad/sec
+var_mag = (45/180*pi)^2;    % rad
 
 % EFK analysis 17nov2015
 % var_gps = (3)^2;            % m
@@ -59,12 +69,13 @@ var_mag = (60/180*pi)^2;    % rad
 % Qnoise = diag(([0.5;0.5;0.2;10*pi/180;5*pi/180]).^2);
 
 Rnoise = diag([var_gps var_gps var_acc var_acc var_gyro var_mag]);
-Qnoise = diag(([0.01;0.01;0.5;5*pi/180;2*pi/180]).^2);
+Qnoise = diag(([0.01;0.01;0.05;10*pi/180;2*pi/180]).^2);
+% Qnoise = diag(([0.01;0.01;0.5;5*pi/180;2*pi/180]).^2);
 
 switch mode
     case 1
         sys = model;
-        extraVAParams  = {'RealTime' ,0};
+        extraVAParams  = {'RealTime' ,1};
     case 2
         car   = RealCar('ny',ny,'dt',dt);
         car.sendCommand(0,[0 0]);
@@ -74,27 +85,46 @@ switch mode
         noisyModel = NoisyModelRealBuggy(Qnoise,Rnoise,...                  % Car model, state vector: [position x; position y; forward velocity; heading; steering angle]
             'ny',ny,...                           % Number of outputs
             'InitialCondition',0.1*ones(5,1),...  % Initial state vector
-            'Parameters',[(1/2);(1/0.1);1;1]... % Parameters first order models (xDot = -k*(x-g*u)):  [k velocity; k steering angle; g velocity; g steering angle;]
+            'Parameters',[(1/0.7);(1/0.1);1;1]... % Parameters first order models (xDot = -k*(x-g*u)):  [k velocity; k steering angle; g velocity; g steering angle;]
             );
         noisyModel.initialConditions(1:2)=[0;0];
-        noisyModel.initialConditions(4) = pi/2;
+        noisyModel.initialConditions(4) = 0;
         sys = noisyModel;
         extraVAParams  = {'RealTime' ,0,EulerForward()};
-   
-        
 end
 
 
 %% CONTROLLER
 
-cdcController = CarController2(...
-    'Epsilon',epsilon,...
-    'pd',pd,'pdDot',pdDot,'pdDDot',pdDDot,... % Desired trajectory
-    'lr',model.lr,'l',model.l,...                 % lr =  length back wheel to center of mass; l = length back wheel to front wheel
-    'Ke',1,'kxi',2, ...                        % Gains of the controller (higher values >> mode aggressive)
-    'kv',1/2,'kd',1/0.1, ...
-    'u1sat',2,'u2sat',0.25 ...
-    );
+switch mode
+    case 1
+        cdcController = CarController2(...
+            'Epsilon',epsilon,...
+            'pd',pd,'pdDot',pdDot,'pdDDot',pdDDot,... % Desired trajectory
+            'lr',model.lr,'l',model.l,...                 % lr =  length back wheel to center of mass; l = length back wheel to front wheel
+            'Ke',1,'kxi',2, ...                        % Gains of the controller (higher values >> mode aggressive)
+            'kv',1/2,'kd',1/0.1, ...
+            'u1sat',10,'u2sat',pi/2 ...
+            );
+    case 2
+        cdcController = CarController2(...
+            'Epsilon',epsilon,...
+            'pd',pd,'pdDot',pdDot,'pdDDot',pdDDot,... % Desired trajectory
+            'lr',model.lr,'l',model.l,...                 % lr =  length back wheel to center of mass; l = length back wheel to front wheel
+            'Ke',1,'kxi',0.3, ...                        % Gains of the controller (higher values >> mode aggressive)
+            'kv',1/1.8,'kd',1/0.1, ...
+            'u1sat',5,'u2sat',0.35 ...
+            );
+    case 3
+        cdcController = CarController2(...
+            'Epsilon',epsilon,...
+            'pd',pd,'pdDot',pdDot,'pdDDot',pdDDot,... % Desired trajectory
+            'lr',model.lr,'l',model.l,...                 % lr =  length back wheel to center of mass; l = length back wheel to front wheel
+            'Ke',0.6,'kxi',1, ...                        % Gains of the controller (higher values >> mode aggressive)
+            'kv',1/0.7,'kd',1/0.1, ...
+            'u1sat',5,'u2sat',0.35 ...
+            );
+end
 % old: 'Ke',2,'kxi',2 ... 
 % sys.controller =  NewCdcControllerAdapter(cdcController, model,100,50*89*pi/180);
 sys.controller = cdcController;
@@ -102,22 +132,24 @@ sys.controller = cdcController;
 
 % Open loop control
 % InlineController(@(t,x)[speed; steeringAngle])
-% sys.controller = InlineController(@(t,x)[1;0.25*1]);
+% sys.controller = InlineController(@(t,x)[2;0]);
 
 % sys.controller = InlineController(@(t,x) clothoidPath(t));
 % sys.controller = KeyboardController();
 extraLogs = {};
-if mode ~= 1
+% if mode ~= 1
+if 1
 %% STATE OBSERVER
-P0 = diag([(1)^2 (1)^2 (0.01)^2 (180*pi/180)^2 (2*pi/180)^2]);
+P0 = diag([(1)^2 (1)^2 (0.01)^2 (1*pi/180)^2 (2*pi/180)^2]);
 
 sys.stateObserver = EkfFilter(DtSystem(model,dt),...
     'InitialCondition' , [0.01*ones(model.nx,1);reshape(P0,model.nx^2,1)],...
     'StateNoiseMatrix' , Qnoise...
     );
 
-% sys.stateObserver.initialConditions(4) = pi/2;
-sys.stateObserver.initialConditions(4) = sys.yaw0;
+sys.stateObserver.initialConditions(4) = 0;
+% sys.stateObserver.initialConditions(1:2) = [2;1];
+% sys.stateObserver.initialConditions(4) = sys.yaw0;
 
 % if ny == 2
     sys.stateObserver.Rekf  =  Rnoise;
@@ -141,7 +173,7 @@ extraLogs = {InlineLog('lyapVar',@(t,a,varargin)a.controller.lastE,'Initializati
 % extraLogs= {};
 
 a = VirtualArena(sys,...
-    'StoppingCriteria'   ,@(t,as)t>20,...
+    'StoppingCriteria'   ,@(t,as)t>40,...
     'StepPlotFunction'   ,@(agentsList,hist,plot_handles,i)stepPlotFunction(agentsList,hist,plot_handles,i,pd,model), ...
     'DiscretizationStep' ,dt,...
     'ExtraLogs'          ,extraLogs,...
@@ -161,7 +193,7 @@ fprintf('Sim Time : %d',simTime);
 
 rosshutdown
 %% Post plot
-return
+% return
 figure
 explodePlot(ret{1}.time, ret{1}.inputTrajectory,'u')
 
