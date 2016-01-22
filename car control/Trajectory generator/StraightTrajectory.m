@@ -23,6 +23,8 @@ classdef StraightTrajectory < handle
         
         end_of_traj = 0;
         
+        trajProj = [0, 0, 0];
+        
     end % properties
     
     
@@ -109,6 +111,7 @@ classdef StraightTrajectory < handle
             end
             obj.end_of_traj = end_of_traj;
             
+            obj.trajProj = [x, v, a];
             % Transpose into x-y frame
             pos = (x*obj.dirVectU)' + obj.p0;
             vel = (v*obj.dirVectU)';
@@ -116,11 +119,12 @@ classdef StraightTrajectory < handle
             
         end % method getTrajFromTime
         
+        function ret = getTrajProj(obj)
+            ret = obj.trajProj;
+        end
         
         function ret = isEnd(obj)
-            
-            ret = obj.end_of_traj;
-            
+            ret = obj.end_of_traj;    
         end
         
         function restart(obj)

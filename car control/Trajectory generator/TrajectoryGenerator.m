@@ -15,12 +15,18 @@ classdef TrajectoryGenerator < handle
         
         tP = 0;
         tPmem = [];
+        
+        lTot = 0;
+        
         currentPart = 1;
         
         currentTime = -1;
         currentPos = [0;0];
         currentVel = [0;0];
         currentAcc = [0;0];
+        
+        trajProj = [0, 0, 0];
+        xStart = 0;
         
     end % properties
     
@@ -32,7 +38,7 @@ classdef TrajectoryGenerator < handle
             obj.checkpoints = checkpoints;
             nCheckpoints = size(checkpoints,1);
             obj.nCheckpoints = nCheckpoints;
-            vCircle = sqrt(aCircle*radius);         % Max speed in curve
+            vCircle = min(vSat,sqrt(aCircle*radius));         % Max speed in curve
             
             if size(checkpoints,1) ~= length(checkpointsSpeed)
                 error('size(checkpointsSpeed,1) ~= length(checkpoints)');
@@ -72,7 +78,8 @@ classdef TrajectoryGenerator < handle
             alpha(1) = 0;
             l2(1) = 0;
             l2(nCheckpoints) = 0;
-            psi(1) = vectU2psi([1;0],dir(:,1));
+%             psi(1) = vectU2psi([1;0],dir(:,1));
+            psi(1) = atan2(dir(2,1),dir(1,1));
             phi(1) = psi(1);
             
             for n = 2:(nCheckpoints-1)
@@ -93,7 +100,7 @@ classdef TrajectoryGenerator < handle
                 center(n,:) = p(n,:)' - l2(n)*dir(:,n-1) + turnDir(n)*radius*[-dir(2,n-1);dir(1,n-1)];
             end
             
-            lTot = sum(l1) + sum(radius*2*alpha);   % Total path length
+            obj.lTot = sum(abs(l1)) + sum(radius*2*alpha);   % Total path length
             
         end % computeGeometry
         
@@ -138,6 +145,8 @@ classdef TrajectoryGenerator < handle
             % Load
             tP = obj.tP;
             currentPart = obj.currentPart;
+            xStart = obj.xStart;
+            
             if t == 0
                 currentPart = 1;
                 tP = 0;
@@ -150,6 +159,7 @@ classdef TrajectoryGenerator < handle
             if (obj.traj{currentPart}.isEnd() == 1) && (currentPart < (nSegments + nCircles-1))
                 currentPart = currentPart + 1;
                 tP = t;
+                xStart = obj.trajProj(1);
             end
             tLoc = t - tP;
             [pos, vel, acc] = obj.traj{currentPart}.getTrajFromTime(tLoc);
@@ -158,8 +168,15 @@ classdef TrajectoryGenerator < handle
             obj.tP = tP;
             obj.currentPart = currentPart;
             obj.tPmem = [obj.tPmem t];
+            obj.trajProj = obj.traj{currentPart}.getTrajProj()+[xStart, 0, 0];
+            obj.xStart = xStart;
+            
             
         end % getTrajFromTime
+        
+        function ret = getTrajProj(obj)
+            ret = obj.trajProj;
+        end
         
         function currentPos = getPosFromTime(obj,t)
             

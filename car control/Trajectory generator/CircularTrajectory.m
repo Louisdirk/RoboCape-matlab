@@ -6,8 +6,11 @@ classdef CircularTrajectory < handle
         start_angle = 0;
         alpha = 0;
         omega = 0;
+        vf = 0;
         
         end_of_traj = 0;
+        
+        trajProj = [0, 0, 0];
     end % properties
     
     methods
@@ -25,6 +28,7 @@ classdef CircularTrajectory < handle
                 
             obj.alpha = alpha;
             obj.omega = vf/radius*rotation;
+            obj.vf = vf;
             
         end % CircularTrajectory
         
@@ -40,6 +44,8 @@ classdef CircularTrajectory < handle
             vel = [-r*w*sin(w*t + s),   r*w*cos(w*t + s)   ];
             acc = [-r*w^2*cos(w*t + s), -r*w^2*sin(w*t + s)];
             
+            obj.trajProj = [obj.vf*t, obj.vf, 0];
+            
             if abs(w*t) >= (pi - 2*a)
                 obj.end_of_traj = 1;
             else
@@ -47,6 +53,10 @@ classdef CircularTrajectory < handle
             end
             
         end % getTrajFromTime
+        
+        function ret = getTrajProj(obj)
+            ret = obj.trajProj;
+        end
         
         function ret = isEnd(obj)
             ret = obj.end_of_traj;

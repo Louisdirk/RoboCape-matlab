@@ -8,28 +8,29 @@
 clear all
 close all
 
-radius = 1;
-aCircle = 0.3;                            % Maximum centripetal acceleration
+radius = 0.5;
+aCircle = 0.6;                            % Maximum centripetal acceleration
 
 aMax = 1;                               % Maximum forward acceleration
 vSat = 2;                               % Maximal velocity
 
-nCheckpoints = 8;
+nCheckpoints = 5;
 p = zeros(nCheckpoints, 2);
 
 p(1,:) = [0, 0];
-p(2,:) = [5, 0];
-p(3,:) = [7, 2];
-p(4,:) = [4, 4];
-p(5,:) = [6, 6];
-p(6,:) = [4, 8];
-p(7,:) = [2, 6];
-p(8,:) = [0, 0];
+p(2,:) = [-8, 0];
+p(3,:) = [-8, -2];
+p(4,:) = [-6, -2];
+p(5,:) = [-6, 0];
 
 vCircle = sqrt(aCircle*radius);         % Max speed in curve
 
-pv = [0; vCircle; vCircle; vCircle; vCircle; vCircle; vCircle; 0]; % Checkpoint velocities
+pv = [0; vCircle; vCircle; vCircle; 0]; % Checkpoint velocities
 
+%%
+% clear all
+% load('traj2_Osterrechichring_Austria_params');
+%%
 
 dir(:, nCheckpoints) = [0;0];
 for n = 1:(nCheckpoints-1)
@@ -42,7 +43,7 @@ l2 = zeros(nCheckpoints,1);
 alpha(1) = 0;
 l2(1) = 0;
 l2(nCheckpoints) = 0;
-psi(1) = vectU2psi([1;0],dir(:,1));
+psi(1) = atan2(dir(2,1),dir(1,1));
 phi(1) = psi(1);
 
 for n = 2:(nCheckpoints-1)
@@ -61,7 +62,7 @@ end
 
 figure;
 plot(p(:,1),p(:,2));
-hold all
+hold on
 for n = 2:(nCheckpoints-1)
     turnDir(n) = sign(det([dir(:,n-1),dir(:,n)]));
     center(n,:) = p(n,:)' - l2(n)*dir(:,n-1) + turnDir(n)*radius*[-dir(2,n-1);dir(1,n-1)];
@@ -102,27 +103,30 @@ end
 % angularSpeed(n) = segParams(n,4)/radius;
 currentPart = 1;
 tP = 0;
-t = 0:0.06:30;
+xStart = 0;
+t = 0:0.06:60;
 for k = 1:length(t)
     if (path{currentPart}.isEnd() == 1) && (currentPart < (nSegments + nCircles-1))
         currentPart = currentPart + 1;
         tP = t(k);
+        xStart = trajProj(1);
 %         disp(tP);
     end
     tLoc = t(k) - tP;
     [pSim(k,:), vSim(k,:), aSim(k,:)] = path{currentPart}.getTrajFromTime(tLoc);
-    pSimProj(k) = norm(pSim(k,:));
-    vSimProj(k) = norm(vSim(k,:));
-    aSimProj(k) = norm(aSim(k,:));
+    trajProj = path{currentPart}.getTrajProj() + [xStart, 0, 0];
+    pSimProj(k) = trajProj(1);
+    vSimProj(k) = trajProj(2);
+    aSimProj(k) = trajProj(3);
 end
 
 %%
 figure(1);
 hold all
 plot(pSim(:,1), pSim(:,2),'.')
-title('Path');
-xlabel('Meters towards east');
-ylabel('Meters towards north');
+% title('Path');
+xlabel('x (m)');
+ylabel('y (m)');
 axis equal
 figure;
 subplot(3,1,1);
