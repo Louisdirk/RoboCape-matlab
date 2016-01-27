@@ -106,10 +106,10 @@ classdef RealCar < CtSystem & InitDeinitObject
             obj.steering_pub = rospublisher('/car/actuator_steering_update',rostype.std_msgs_Float64);
             obj.steering_msg = rosmessage(obj.steering_pub);
             
-            obj.gps_sub = rossubscriber('/car/fix', rostype.sensor_msgs_NavSatFix, @gpsCallback);
+            obj.gps_sub = rossubscriber('/car/fix', rostype.sensor_msgs_NavSatFix, @gpsCallback,'BufferSize',1);
             
-            obj.imu_sub = rossubscriber('/car/imu_readings', rostype.sensor_msgs_Imu, @imuCallback);
-            obj.mag_sub = rossubscriber('/car/mag_readings', rostype.sensor_msgs_MagneticField, @magCallback);
+            obj.imu_sub = rossubscriber('/car/imu_readings', rostype.sensor_msgs_Imu, @imuCallback,'BufferSize',1);
+            obj.mag_sub = rossubscriber('/car/mag_readings', rostype.sensor_msgs_MagneticField, @magCallback,'BufferSize',1);
             
             % Initialize origin
             msg_gps = receive(obj.gps_sub);
@@ -147,26 +147,19 @@ classdef RealCar < CtSystem & InitDeinitObject
             carSpeed   = u(1);                      % Up to 10
             
             if carSpeed < 0
-                carSpeed = carSpeed*2;
+                carSpeed = carSpeed*2; % Esc brakes at 50%
             end
             
             % Input command failsafe
             if carSpeed > 6
                 carSpeed = 6;
-            elseif carSpeed < -6
-                carSpeed = -6;
+            elseif carSpeed < -10
+                carSpeed = -10;
             end
             
-%             if t<5
-%                 carSpeed = min(carSpeed,1);
-%             end
-%             steeringValue = 1.2*steeringAngle;
             steeringValue = 1.463*steeringAngle + sign(steeringAngle)*0.059;
-%             f = 1.4630*x - 0.059;
-%             steeringValue = steeringAngle*2;
-%             engineValue = 0.84*carSpeed + 2.543;
+
             engineValue = 0.9*carSpeed + 2.543;
-            % old value *1.12
             
             if abs(carSpeed) < 0.1
                 engineValue = 0;
