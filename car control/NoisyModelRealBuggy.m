@@ -11,7 +11,7 @@ classdef NoisyModelRealBuggy < CtSystem & InitDeinitObject & ParameterizedCtSyst
     properties 
         l = 0.34;
         lr = 0.17;
-        yaw0 = pi/2;
+        yaw0 = 0;
     end
     
     methods
@@ -83,8 +83,10 @@ classdef NoisyModelRealBuggy < CtSystem & InitDeinitObject & ParameterizedCtSyst
                 x(3)*cos(beta(x))*tan(x(5))/l;
                 x(4)
             ];
-            y(6) = NaN;
-            if mod(t,0.2) ~= 0 % GPS measurement every 0.2 sec.
+%             y(6) = NaN;
+            if mod(t,0.2) >= 0 && mod(t,0.2) < 0.059 % GPS measurement every 0.2 sec.
+                return;
+            else
                 y(1:2) = [NaN;NaN];
             end
         end
