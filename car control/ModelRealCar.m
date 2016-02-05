@@ -11,6 +11,7 @@ classdef ModelRealCar < CtSystem & InitDeinitObject & ParameterizedCtSystem
     properties
         l = 0.34;
         lr = 0.17;
+        yaw0 = 0;
     end
     
     methods
@@ -22,7 +23,7 @@ classdef ModelRealCar < CtSystem & InitDeinitObject & ParameterizedCtSystem
             if strcmp(varargin{5}, 'Parameters')
                 obj.parameters = varargin{6};
             else
-                obj.parameters = [(1/0.7);(1/0.1);1;1];
+                obj.parameters = [(1/1.8);(1/0.1);1;1];
             end
             obj.f = @(t,x,u) obj.parametricF(t,x,u,obj.parameters);
             
@@ -91,6 +92,7 @@ classdef ModelRealCar < CtSystem & InitDeinitObject & ParameterizedCtSystem
             
             lr = obj.lr;
             l  = obj.l;
+            
             beta = @(x)atan((lr/l)*tan(x(5)));
             
             dx = [

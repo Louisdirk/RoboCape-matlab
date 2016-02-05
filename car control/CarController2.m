@@ -217,6 +217,7 @@ classdef CarController2 < Controller
             u = [vfDot/kv + x(3);
                 deltaDot/kd + x(5)];
             
+            
             if ~isempty(obj.u1sat)
 %                 u(1) = max(min(u(1),obj.u1sat),0);
                     u(1) = max(min(u(1),obj.u1sat),-obj.u1sat);

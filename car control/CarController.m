@@ -53,6 +53,7 @@ classdef CarController < Controller
         K=eye(2);
         kxi = 1;
         
+        lastE;
         u1sat = inf;
     end
     
@@ -159,7 +160,6 @@ classdef CarController < Controller
             pdDot   = obj.pdDot(t);
             pdDDot  = obj.pdDDot(t);
             
-            
             hatE = getLyapunovVariable(obj,t,x);
             e  = hatE(1:2);
             xi = hatE(3);
@@ -171,9 +171,9 @@ classdef CarController < Controller
             
             invDelta = [1,epsilon(2)/epsilon(1);0,epsilon(1)];
             
-            u2 = -(x(3)/l)*cos(beta(x))*tan(x(5))+[0,1/epsilon(1)]*(-K*e+R'*pdDot);
+            u2 = -(x(3)/l)*cos(beta(x))*tan(x(5))+[0,1/epsilon(1)]*(-K*e+R'*pdDot); % u2 = betaDot = -phiDot + omega
             
-            omega =(x(3)/l)*cos(beta(x))*tan(x(5))+u2;
+            omega =(x(3)/l)*cos(beta(x))*tan(x(5))+u2; % omega = phiDot + betaDot
             
             S = [0   , -omega;
                 omega, 0     ];
@@ -183,7 +183,9 @@ classdef CarController < Controller
             u1 = ([-1,0]+[1,epsilon(2)/epsilon(1)]*K*S)*e-kxi*xi+q2;
             
             %u1 = max(min(u1,obj.u1sat),-obj.u1sat);
+            obj.lastE=  [e;xi];
             u  = [u1;u2];
+
         end
         
         

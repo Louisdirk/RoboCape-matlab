@@ -20,7 +20,7 @@ classdef NoisyModelRealBuggy < CtSystem & InitDeinitObject & ParameterizedCtSyst
             
             obj = obj@CtSystem(... 
             'nx',5,'nu',2,'ny',3,varargin{:});
-            obj.parameters = [(1/0.7);(1/0.1);1;1];
+            obj.parameters = [(1/1.8);(1/0.1);1;1];
             obj.f = @(t,x,u)obj.parametricF(t,x,u,obj.parameters)+chol(Q)'*randn(5,1);
             
             

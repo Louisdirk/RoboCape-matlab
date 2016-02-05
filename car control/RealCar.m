@@ -146,15 +146,12 @@ classdef RealCar < CtSystem & InitDeinitObject
             steeringAngle = u(2);                   % Between -0.35 (left) and 0.35 (right)
             carSpeed   = u(1);                      % Up to 10
             
-            if carSpeed < 0
-                carSpeed = carSpeed*2; % Esc brakes at 50%
-            end
             
             % Input command failsafe
             if carSpeed > 6
                 carSpeed = 6;
-            elseif carSpeed < -10
-                carSpeed = -10;
+            elseif carSpeed < 0
+                carSpeed = -20;
             end
             
             steeringValue = 1.463*steeringAngle + sign(steeringAngle)*0.059;
@@ -171,7 +168,7 @@ classdef RealCar < CtSystem & InitDeinitObject
 %             end
             
             obj.engine_msg.Data = engineValue-12.5;
-            obj.steering_msg.Data = -steeringValue-0.435;
+            obj.steering_msg.Data = -steeringValue-0.5;
             
             send(obj.engine_pub, obj.engine_msg)
             send(obj.steering_pub, obj.steering_msg)
