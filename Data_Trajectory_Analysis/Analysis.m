@@ -13,7 +13,7 @@ close all
 l = 0.34;
 lr = 0.17;
 
-tv = 1.8;
+tv = 1.1;
 tdelta = 0.1;
 
 %% Extract measurements
@@ -25,16 +25,25 @@ for i = 1:length(ret{1}.measurements(5,:))
     if mask(i) == 0
         meas(:,j) = ret{1}.measurements(:,i);
         t_meas(j) = ret{1}.time(i);
-        if meas(1:2,j) == ret{1}.observerStateTrajectory(1:2,i)
-            meas(1:2,j) = [NaN;NaN];
-        end
         j = j+1;
     end
 end
 
+mask_gps = isnan(ret{1}.measurements(1,:));
+t_gps = t(~mask_gps);
+meas_gps = ret{1}.measurements(:,~mask_gps);
+speed_from_gps = zeros(1,length(meas_gps));
+
+for i = 2:length(meas_gps)
+    speed_from_gps(i) = sqrt((meas_gps(1,i)-meas_gps(1,i-1))^2 + (meas_gps(2,i)-meas_gps(2,i-1))^2)*5;
+end
+
+figure; plot(t_gps,speed_from_gps)
 %% State observation evolution
 inputs = ret{1}.inputTrajectory;
 Ts = t(2)-t(1);
+
+inputs(1,:) = max(inputs(1,:),0);
 
 % Velocity model filter
 Fs1 = tf(1,[tv 1]);
@@ -56,7 +65,7 @@ varEst = ret{1}.observerStateTrajectory(6:6:6*5,:);
 sigEst = sqrt(varEst);
 
 % Plot trajectory estimation with position measurements in gui
-ui_plot_traj(t_meas, meas, t, gpsEst, vfEst, yawEst);
+ui_plot_traj(t, ret{1}.measurements, t, gpsEst, vfEst, yawEst);
 
 figure(2);
 plot(t, inputs(1,:), t, inputsF(1,:),t,vfEst);
@@ -140,20 +149,36 @@ xlabel('Time (s)');
 % title('Innovation');
 
 %% Path from yaw estimate
+
+
 posFromYaw_mem = zeros(2,1);
 posFromYaw = 0;
-for i = 1:length(t)
+
+vfMeas = vfEst(~mask); % vfEst at "meas" time
+yawInt = 3/2*pi;
+
+%
+% vfEst = max(inputsF(1,:),0);
+%
+for i = 2:length(t_meas)
+    deltaT = t_meas(i) - t_meas(i-1);
+    yawInt(i) = yawInt(i-1) + meas(5,i)*deltaT;
     dx = [
-        cos(yawEst(i))*vfEst(i)*Ts;          % xDot
-        sin(yawEst(i))*vfEst(i)*Ts;          % yDot
+        cos(yawInt(i))*vfMeas(i)*deltaT;          % xDot
+        sin(yawInt(i))*vfMeas(i)*deltaT;          % yDot
         ];
     posFromYaw = posFromYaw + dx;
     posFromYaw_mem = [posFromYaw_mem posFromYaw];
+    
 end
 
-figure;
+fig = figure;
 plot(posFromYaw_mem(1,2:end),posFromYaw_mem(2,2:end));
 title('Path from yaw and speed estimates');
+
+dcm_obj = datacursormode(fig);
+set(dcm_obj,'UpdateFcn',{@myupdatefcn,t_meas})
+
 
 %% 
 figure;
@@ -203,7 +228,7 @@ GPS_Tics = ~isnan(ret{1}.measurements(1,:));
 GPS_Density = conv(double(GPS_Tics), ones(1,windowSize), 'valid')/(windowSize);
 subplot(2,1,2);stem(t,GPS_Tics*100,'Color',[0.8 0.8 0.8]) % GNSS
 hold all
-plot(t(1:end-(windowSize-1)),min(GPS_Density*100*3,100),'Color',[0 0 0]);
+plot(t(1:end-(windowSize-1)),min(GPS_Density*100*3.3,100),'Color',[0 0 0]);
 hold off
 xlabel('Time (s)');
 ylabel('Q_{gnss} (%)');
