@@ -43,6 +43,8 @@ mag = zeros(3,1);
 %         msg_mag.MagneticField_.X,...
 %         msg_mag.MagneticField_.Y...
 %         );
+%     phi = phi + 15*pi/180;
+% %     quiver(zeros(1,length(phi)),zeros(1,length(phi)),msg_mag.MagneticField_.X,msg_mag.MagneticField_.Y)
 %     quiver(zeros(1,length(phi)),zeros(1,length(phi)),cos(phi),sin(phi))
 %     axis([-1 1 -1 1]);
 % end
@@ -53,7 +55,6 @@ global car_lon
 global gps_new_data
 
 gnss_sub = rossubscriber('/car/fix', rostype.sensor_msgs_NavSatFix, @gpsCallback);
-
 
 
 % Initialize origin
@@ -87,6 +88,7 @@ dt = 0;
 computation_time = 0;
 t_imu = 0;
 t_gps = 0;
+u_mem = [0;0];
 
 while ~stop_car
     tic;
@@ -96,7 +98,7 @@ while ~stop_car
         acc = [acc imu_data.accelerometer'];
         gyro = [gyro imu_data.gyroscope'];
         mag = [mag imu_data.magnetometer'];
-        t_imu = [t_imu t];
+        t_imu = [t_imu t_run];
     end
     % Check if new GNSS data is available
     if gps_new_data == 1
@@ -108,31 +110,36 @@ while ~stop_car
         phi = [phi atan2(mag(1,end), mag(2,end))];
         set(hq, 'XData',xPos,'YData',yPos, 'UData', 0.1*cos(phi), 'VData', 0.1*sin(phi));
         d = sqrt(x*x+y*y);
-        fprintf('\t Longitude:%3.6f \t Latitude:%3.6f \t Altitude:%3.6f\n', msg.Longitude, msg.Latitude, msg.Altitude);
+        fprintf('\t Longitude:%3.6f \t Latitude:%3.6f \t Altitude:%3.6f\n', car_lon, car_lat, 0);
         fprintf('Coordinates:  \n\t x: %2.2f (m)\t y: %2.2f (m)\t d: %2.2f (m)\n', x, y, d);
-        t_gps = [t_gps t];
+        t_gps = [t_gps t_run];
     end
     
+    % Controller
     % Update car speed and steering angle
-    steeringAngle = 0.1;   % Between -0.54 (left) and 0.54 (right) in radians
-    carSpeed = 1;           % In m/s
+    u = zig_zag(t_run);
+    steeringAngle = u(2);   % Between -0.54 (left) and 0.54 (right) in radians
+    carSpeed = u(1);        % In m/s
     
+    u_mem = [u_mem u];
+    % Mapping
     if carSpeed > 3
         carSpeed = 3;
     end
     
-    steeringValue = -0.962*steeringAngle.^2 + 1.434*steeringAngle;
-    engineValue = 0.84*carSpeed+2.543;                            % Up to 10
+    steeringValue = 1.463*steeringAngle + sign(steeringAngle)*0.059;
+    engineValue = 0.9*carSpeed + 2.543;
     
-    if carSpeed < 0.5
+    if abs(carSpeed) < 0.1
         engineValue = 0;
     end
-    % Failsafe
-    if engineValue > 6
-        engineValue = 6;
+    
+    if carSpeed < 0
+        carSpeed = carSpeed*2; % Esc brakes at 50%
     end
+    
     engine_msg.Data = engineValue-12.5;
-    steering_msg.Data = steeringValue-0.435;
+    steering_msg.Data = -steeringValue-0.5;
     
     send(engine_pub, engine_msg)
     send(steering_pub, steering_msg)
@@ -158,18 +165,49 @@ end
 
 
 % Stop
-engine_msg.Data = 0-12.5;
+engine_msg.Data = -20-12.5;
 steering_msg.Data = 0-0.435;
 
 
 send(engine_pub, engine_msg)
 send(steering_pub, steering_msg)
 
-phi = atan2(mag(2,:),-mag(1,:));
-hold all
-figure;
-quiver(zeros(1,length(phi)),zeros(1,length(phi)),cos(phi),sin(phi))
+%%
+% phi = atan2(mag(2,:),-mag(1,:));
+% hold all
+% figure;
+% quiver(zeros(1,length(phi)),zeros(1,length(phi)),cos(phi),sin(phi))
 
-% pause(1);
-%
-% rosshutdown;
+%% Build ret structure, as in VA, for compatibility with Analysis.m
+ret{1}.time = t;
+l_meas = length(acc);
+l_time = length(t);
+
+[val, iT, iGps] = intersect(t, t_gps);
+xPos_remapped = ones(1,l_time)*NaN;
+yPos_remapped = ones(1,l_time)*NaN;
+xPos_remapped(iT') = xPos(iGps);
+yPos_remapped(iT') = yPos(iGps);
+
+[val, iT, iImu] = intersect(t, t_imu);
+acc_remapped = ones(3,l_time)*NaN;
+gyro_remapped = ones(3,l_time)*NaN;
+phi_remapped = ones(1,l_time)*NaN;
+acc_remapped(:,iT') = acc(:,iImu);
+gyro_remapped(:,iT') = gyro(:,iImu);
+phi_remapped(iT') = phi(:,iImu);
+
+ret{1}.measurements = [ xPos_remapped;
+    yPos_remapped;
+    acc_remapped(1,:);
+    acc_remapped(2,:);
+    gyro_remapped(3,:);
+    phi_remapped];
+
+ret{1}.inn = ones(6,l_time)*NaN;
+
+% ret{1}.inputTrajectory = ones(2,l_time)*NaN;
+ret{1}.inputTrajectory = u_mem;
+ret{1}.observerStateTrajectory = ones(30,l_time)*NaN;
+ret{1}.observerStateTrajectory(3,:) = ones(1,l_time);
+ret{1}.lyapVar = ones(3,l_time)*NaN;
