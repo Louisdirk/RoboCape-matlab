@@ -117,7 +117,8 @@ while ~stop_car
     
     % Controller
     % Update car speed and steering angle
-    u = zig_zag(t_run);
+%     u = zig_zag(t_run);
+    u = [0; -0.0];
     steeringAngle = u(2);   % Between -0.54 (left) and 0.54 (right) in radians
     carSpeed = u(1);        % In m/s
     
@@ -127,7 +128,9 @@ while ~stop_car
         carSpeed = 3;
     end
     
-    steeringValue = 1.463*steeringAngle + sign(steeringAngle)*0.059;
+%     steeringAngle = steeringAngle*0.7;
+%     steeringValue = 1.463*steeringAngle + sign(steeringAngle)*0.059;
+    steeringAngle = -0.4; % between -0.46 and 0.46
     engineValue = 0.9*carSpeed + 2.543;
     
     if abs(carSpeed) < 0.1
@@ -139,7 +142,14 @@ while ~stop_car
     end
     
     engine_msg.Data = engineValue-12.5;
-    steering_msg.Data = -steeringValue-0.5;
+    
+    if steeringAngle > 0
+        steeringValue = steeringAngle*2.08;
+    else
+        steeringValue = steeringAngle*1.75;
+    end
+    
+    steering_msg.Data = -steeringValue+0.04;
     
     send(engine_pub, engine_msg)
     send(steering_pub, steering_msg)
@@ -209,5 +219,12 @@ ret{1}.inn = ones(6,l_time)*NaN;
 % ret{1}.inputTrajectory = ones(2,l_time)*NaN;
 ret{1}.inputTrajectory = u_mem;
 ret{1}.observerStateTrajectory = ones(30,l_time)*NaN;
-ret{1}.observerStateTrajectory(3,:) = ones(1,l_time);
+
+% Velocity model filter
+Fs1 = tf(1,[tv 1]);
+Fz1 = c2d(Fs1,Ts);
+inputs(1,:) = max(u_mem(1,:),0);
+inputsF(1,:) = filter(Fz1.num{1}, Fz1.den{1},inputs(1,:));
+
+ret{1}.observerStateTrajectory(3,:) = inputsF(1,:);
 ret{1}.lyapVar = ones(3,l_time)*NaN;
