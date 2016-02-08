@@ -59,7 +59,7 @@ model.initialConditions(4) = yawInit;
 % mode 1 > simulation
 % mode 2 > real vehicle
 % mode 3 > noisy model (simulation)
-mode = 2;
+mode = 3;
 var_gps = (0.1)^2;         % m
 var_acc = (0.05)^2;         % m/s^2
 var_gyro = (0.1)^2;        % rad/sec
@@ -116,9 +116,9 @@ switch mode
             'Epsilon',epsilon,...
             'pd',pd,'pdDot',pdDot,'pdDDot',pdDDot,... % Desired trajectory
             'lr',model.lr,'l',model.l,...                 % lr =  length back wheel to center of mass; l = length back wheel to front wheel
-            'Ke',1,'kxi',2, ...                        % Gains of the controller (higher values >> mode aggressive)
+            'Ke',2,'kxi',1, ...                        % Gains of the controller (higher values >> mode aggressive)
             'kv',1/tv,'kd',1/td, ...
-            'u1sat',5,'u2sat',0.35 ...
+            'u1sat',4,'u2sat',0.35 ...
             );
     case 3
         cdcController = CarController2(...
@@ -137,14 +137,10 @@ sys.controller = cdcController;
 
 % Open loop control
 % InlineController(@(t,x)[speed; steeringAngle])
-<<<<<<< Updated upstream
 % sys.controller = InlineController(@(t,x)[t/10;0]);
 % sys.controller = InlineController(@(t,x) zig_zag(t));
 % sys.controller = InlineController(@(t,x) forward_n_turn(t));
-=======
 % sys.controller = InlineController(@(t,x)[t;0]);
-
->>>>>>> Stashed changes
 % sys.controller = InlineController(@(t,x) clothoidPath(t));
 % sys.controller = KeyboardController();
 extraLogs = {};
@@ -186,7 +182,7 @@ extraLogs = {InlineLog('realTime',@(t,agent,varargin)toc(tlog)),extraLogs{:}};
 
 % extraLogs= {};
 a = VirtualArena(sys,...
-    'StoppingCriteria'   ,@(t,as)t>8,...
+    'StoppingCriteria'   ,@(t,as)t>40,...
     'StepPlotFunction'   ,@(agentsList,hist,plot_handles,i)stepPlotFunction(agentsList,hist,plot_handles,i,pd,model), ...
     'DiscretizationStep' ,dt,...
     'ExtraLogs'          ,extraLogs,...
