@@ -2,10 +2,10 @@
 l = 0.34;
 lr = 0.17;
 
-tv = 2;
+tv = 1.8;
 gv = 1;
 td = 0.1;
-gd = 0.5;
+gd = 1;
         
 beta = @(x)atan((lr/l)*tan(x(5)));
 
@@ -39,6 +39,5 @@ for i = 1:length(t)
     x_mem = [x_mem x];
 end
 
-
 figure; 
-plot(-x_mem(1,:),-x_mem(2,:));
+plot(x_mem(1,:),x_mem(2,:));

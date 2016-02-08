@@ -8,8 +8,8 @@
 clear all
 close all
 
-radius = 0.5;
-aCircle = 0.6;                            % Maximum centripetal acceleration
+radius = 1.5;
+aCircle = 1;                            % Maximum centripetal acceleration
 
 aMax = 1;                               % Maximum forward acceleration
 vSat = 2;                               % Maximal velocity
@@ -18,10 +18,10 @@ nCheckpoints = 5;
 p = zeros(nCheckpoints, 2);
 
 p(1,:) = [0, 0];
-p(2,:) = [-8, 0];
-p(3,:) = [-8, -2];
-p(4,:) = [-6, -2];
-p(5,:) = [-6, 0];
+p(2,:) = [0, -3];
+p(3,:) = [1, -5];
+p(4,:) = [-1, -7.5];
+p(5,:) = [0, -9];
 
 vCircle = sqrt(aCircle*radius);         % Max speed in curve
 

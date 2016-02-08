@@ -14,7 +14,7 @@ l = 0.34;
 lr = 0.17;
 
 tv = 1.1;
-tdelta = 0.1;
+tdelta = 0.2;
 
 %% Extract measurements
 
@@ -65,7 +65,9 @@ varEst = ret{1}.observerStateTrajectory(6:6:6*5,:);
 sigEst = sqrt(varEst);
 
 % Plot trajectory estimation with position measurements in gui
-ui_plot_traj(t, ret{1}.measurements, t, gpsEst, vfEst, yawEst);
+traj = TrajectoryGenerator(p,pv,radius,aCircle,aMax,vSat);
+[traj_ref, ~, ~] = traj.getSampledTraj(Ts,t(end));
+ui_plot_traj(t, ret{1}.measurements, t, gpsEst, vfEst, yawEst, traj_ref');
 
 figure(2);
 plot(t, inputs(1,:), t, inputsF(1,:),t,vfEst);

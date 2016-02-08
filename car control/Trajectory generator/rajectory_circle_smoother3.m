@@ -20,17 +20,17 @@ clc
 radius = 1;
 aCircle = 2;                            % Maximum centripetal acceleration
 
-aMax = 2;                               % Maximum forward acceleration
+aMax = 1;                               % Maximum forward acceleration
 vSat = 1;                               % Maximal velocity
 
 nCheckpoints = 5;
 p = zeros(nCheckpoints, 2);
 
 p(1,:) = [0, 0];
-p(2,:) = [-8, 0];
-p(3,:) = [-8, -2];
-p(4,:) = [-6, -2];
-p(5,:) = [-6, 0];
+p(2,:) = [-11, 0];
+p(3,:) = [-11, -2];
+p(4,:) = [-8, -2];
+p(5,:) = [-8, 0];
 
 vCircle = sqrt(aCircle*radius);         % Max speed in curve
 
@@ -39,7 +39,7 @@ pv = [0; vCircle; vCircle; vCircle; 0]; % Checkpoint velocities
 %% Use old path and modify some parameters
 
 % clear all
-% load('traj2_Osterrechichring_Austria_params');
+% load('traj2_Osterrechichring_Austria_params_slow');
 % aMax = 1;                               % Maximum forward acceleration
 % vSat = 3;
 % 

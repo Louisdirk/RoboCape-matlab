@@ -137,9 +137,14 @@ sys.controller = cdcController;
 
 % Open loop control
 % InlineController(@(t,x)[speed; steeringAngle])
+<<<<<<< Updated upstream
 % sys.controller = InlineController(@(t,x)[t/10;0]);
 % sys.controller = InlineController(@(t,x) zig_zag(t));
 % sys.controller = InlineController(@(t,x) forward_n_turn(t));
+=======
+% sys.controller = InlineController(@(t,x)[t;0]);
+
+>>>>>>> Stashed changes
 % sys.controller = InlineController(@(t,x) clothoidPath(t));
 % sys.controller = KeyboardController();
 extraLogs = {};
@@ -176,8 +181,10 @@ extraLogs = {MeasurementsLog(ny),extraLogs{:}};
 %% RUN SIMULATION
 % extraLogs = {InlineLog('lyapVar',@(t,a,varargin)a.controller.originalController.getLyapunovVariable(t,a.stateObserver.x(1:5)),'Initialization',zeros(3,1))};
 extraLogs = {InlineLog('lyapVar',@(t,a,varargin)a.controller.lastE,'Initialization',zeros(3,1)),extraLogs{:}};
-% extraLogs= {};
+tlog = tic;
+extraLogs = {InlineLog('realTime',@(t,agent,varargin)toc(tlog)),extraLogs{:}};
 
+% extraLogs= {};
 a = VirtualArena(sys,...
     'StoppingCriteria'   ,@(t,as)t>8,...
     'StepPlotFunction'   ,@(agentsList,hist,plot_handles,i)stepPlotFunction(agentsList,hist,plot_handles,i,pd,model), ...

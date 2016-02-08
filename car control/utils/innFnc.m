@@ -17,6 +17,7 @@ elseif  length(z)==3 % GPS
     
 else
     inn    = z - y;
+%     inn(3:6) = [0;0;0;0];
     if isnan(z(6)) || isnan(y(6))
         inn(6) = NaN;
     else

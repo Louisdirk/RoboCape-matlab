@@ -84,9 +84,11 @@ classdef NewCdcControllerAdapter < ControllerAdapter
             lr = obj.car.lr;
             
             dBetadDelta = @(delta) (lr/l)*sec(delta)^2/(1+((lr/l)*tan(delta))^2);
-            
+            deltaDot = betaDot/dBetadDelta(delta);
             u = [(1/kv                     )*(a       + kv                     *v    );
                 (1/(kd*dBetadDelta(delta)))*(betaDot + (kd*dBetadDelta(delta))*delta)];
+%             u = [a/kv + v;
+%                 deltaDot/kd + delta];
             
             if ~isempty(obj.u1sat)
                 u(1) = max(min(u(1),obj.u1sat),0);
