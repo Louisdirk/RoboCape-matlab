@@ -2,7 +2,7 @@
 l = 0.34;
 lr = 0.17;
 
-tv = 1.8;
+tv = 1.4;
 gv = 1;
 td = 0.1;
 gd = 1;
@@ -23,12 +23,19 @@ Fz2 = c2d(Fs2,Ts);
 inputsF(1,:) = filter(Fz2.num{1}, Fz2.den{1},inputs(1,:));
 
 x = zeros(5,1);
+x(4) = -pi/2;
 x_mem = x;
 for i = 1:length(t)
     u = inputs(:,i);
+    if x(3) < 0.6
+        v_f = 0;
+    else
+        v_f = x(3);
+    end
+    
     dxState = [
-        cos(x(4)+beta(x))*x(3)*Ts;          % xDot
-        sin(x(4)+beta(x))*x(3)*Ts;          % yDot
+        cos(x(4)+beta(x))*v_f*Ts;          % xDot
+        sin(x(4)+beta(x))*v_f*Ts;          % yDot
         0 ;                                 % vDot  compute with "filter"
         (x(3)/l)*cos(beta(x))*tan(x(5))*Ts; % phiDot
         0;                                  % deltaDot compute with "filter"
