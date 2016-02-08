@@ -222,6 +222,16 @@ classdef TrajectoryGenerator < handle
             
         end
         
+        function [posTraj, velTraj, accTraj] = getSampledTraj(obj,Ts,t_final)
+            [posTraj,velTraj,accTraj] = getTrajFromTime(obj,0);
+           for t = Ts:Ts:t_final 
+               [pos,vel,acc] = getTrajFromTime(obj,t);
+               posTraj = [posTraj; pos];
+               velTraj = [velTraj; vel];
+               accTraj = [accTraj; acc];
+           end
+        end
+        
         
     end % methods
     
