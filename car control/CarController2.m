@@ -59,6 +59,7 @@ classdef CarController2 < Controller
         kd;
         
         lastE;
+        lastP;
     end
     
     
@@ -183,6 +184,8 @@ classdef CarController2 < Controller
             pd      = obj.pd(t);
             pdDot   = obj.pdDot(t);
             pdDDot  = obj.pdDDot(t);
+            
+            obj.lastP = pd;
             
             hatE = getLyapunovVariable(obj,t,x);
             e  = hatE(1:2);

@@ -9,15 +9,15 @@ hold all
 h2 = quiver(meas(1,:), meas(2,:), 0.1*cos(meas(6,:)), 0.1*sin(meas(6,:)));
 
 % Plot position estimate
-h3 = plot(gpsEst(1,:), gpsEst(2,:), '.');
+h3 = plot(gpsEst(1,:), gpsEst(2,:), '.','MarkerSize',0.7);
 quiverDisplay = 1:10:length(gpsEst);
 h4 = quiver(gpsEst(1,quiverDisplay), gpsEst(2,quiverDisplay), vfEst(quiverDisplay).*cos(yawEst(quiverDisplay)), vfEst(quiverDisplay).*sin(yawEst(quiverDisplay)));
 title('Position');
-xlabel('x^l');
-ylabel('y^l');
+xlabel('x (m)');
+ylabel('y (m)');
 
 % Plot reference path
-h5 = plot(traj_ref(1,:),traj_ref(2,:));
+h5 = plot(traj_ref(1,:),traj_ref(2,:),'b');
 
 % Plot car position logo every second
 k = 0;
@@ -29,12 +29,12 @@ for i = indexLogo
     phi = yawEst(i);
     scale = 0.2;
     logo{k} = getPositionLogo(origin, phi, scale);
-    hLogo(k) = plot(logo{k}(1,:),logo{k}(2,:),'k');
+    hLogo(k) = plot(logo{k}(1,:),logo{k}(2,:),'r');
     
     dPos = traj_ref(:,indexLogo(k)+2)-traj_ref(:,indexLogo(k));
     phiRef = atan2(dPos(2),dPos(1));
     logoRef{k} = getPositionLogo(traj_ref(:,indexLogo(k)), phiRef, scale);
-    hLogoRef(k) = plot(logoRef{k}(1,:),logoRef{k}(2,:),'Color',[0.8 0.8 0.8]);
+    hLogoRef(k) = plot(logoRef{k}(1,:),logoRef{k}(2,:),'b');
 end
 
 axis equal

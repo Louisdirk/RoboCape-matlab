@@ -143,7 +143,7 @@ classdef RealCar < CtSystem & InitDeinitObject
             %% Send command u(t) to the vehicle
             
             % Update car speed and steering angle
-            steeringAngle = u(2);                   % Between -0.35 (left) and 0.35 (right)
+            steeringAngle = u(2);                   % Between -0.46 (left) and 0.46 (right)
             carSpeed   = u(1);                      % Up to 10
             
             
@@ -154,7 +154,14 @@ classdef RealCar < CtSystem & InitDeinitObject
                 carSpeed = -20;
             end
             
-            steeringValue = 1.463*steeringAngle + sign(steeringAngle)*0.059;
+%             steeringValue = 1.463*steeringAngle + sign(steeringAngle)*0.059;
+            if steeringAngle > 0
+                steeringValue = steeringAngle*2.0837;
+            else
+                steeringValue = steeringAngle*1.7474;
+            end
+    
+            steering_msg.Data = -steeringValue+0.04;
 
             engineValue = 0.9*carSpeed + 2.543;
             
@@ -168,7 +175,7 @@ classdef RealCar < CtSystem & InitDeinitObject
 %             end
             
             obj.engine_msg.Data = engineValue-12.5;
-            obj.steering_msg.Data = -steeringValue-0.5;
+%             obj.steering_msg.Data = -steeringValue-0.5;
             
             send(obj.engine_pub, obj.engine_msg)
             send(obj.steering_pub, obj.steering_msg)

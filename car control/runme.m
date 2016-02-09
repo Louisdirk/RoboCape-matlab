@@ -6,7 +6,8 @@ addpath('./utils')
 dt       = 0.1;
 epsilon  = [0.2;0];
 
-yawInit = 3/2*pi;
+yawInit = 1/2*pi;
+posInit = [2; 1];
 tv = 1.1;           % Engine time constant (s)
 td = 0.1;           % Steering mechanism time constant (s)
 
@@ -30,9 +31,9 @@ switch pathType
         pdDot    = @(t) [0.1*3*t^2 ; 2*t];
         pdDDot   = @(t) [0.1*6*t ; 2];
     case 4
-%         load('traj2_Osterrechichring_Austria_params_slow');
+        load('traj2_Osterrechichring_Austria_params_high_acceleration');
 %         load('traj4_terrace');
-            load('traj5_zigzag_south');
+%             load('traj5_zigzag_south');
 %         load('traj3_loopfaster2.mat');
         traj = TrajectoryGenerator(p,pv,radius,aCircle,aMax,vSat);
         
@@ -51,7 +52,7 @@ model = ModelRealCar(...                  % Car model, state vector: [position x
     'Parameters',[(1/tv);(1/td);1;1]... % Parameters first order models (xDot = -k*(x-g*u)):  [k velocity; k steering angle; g velocity; g steering angle;]
     );
 
-model.initialConditions(1:2)=[0;0];
+model.initialConditions(1:2)=posInit;
 model.initialConditions(4) = yawInit;
 
 
@@ -92,7 +93,7 @@ switch mode
             'InitialCondition',0.1*ones(5,1),...  % Initial state vector
             'Parameters',[(1/tv);(1/td);1;1]... % Parameters first order models (xDot = -k*(x-g*u)):  [k velocity; k steering angle; g velocity; g steering angle;]
             );
-        noisyModel.initialConditions(1:2)=[0;0];
+        noisyModel.initialConditions(1:2)=posInit;
         noisyModel.initialConditions(4) = yawInit;
         sys = noisyModel;
         extraVAParams  = {'RealTime' ,0,EulerForward()};
@@ -118,7 +119,7 @@ switch mode
             'lr',model.lr,'l',model.l,...                 % lr =  length back wheel to center of mass; l = length back wheel to front wheel
             'Ke',2,'kxi',1, ...                        % Gains of the controller (higher values >> mode aggressive)
             'kv',1/tv,'kd',1/td, ...
-            'u1sat',4,'u2sat',0.35 ...
+            'u1sat',4,'u2sat',0.46 ...
             );
     case 3
         cdcController = CarController2(...
@@ -127,7 +128,7 @@ switch mode
             'lr',model.lr,'l',model.l,...                 % lr =  length back wheel to center of mass; l = length back wheel to front wheel
             'Ke',1,'kxi',2, ...                        % Gains of the controller (higher values >> mode aggressive)
             'kv',1/tv,'kd',1/td, ...
-            'u1sat',3,'u2sat',0.35 ...
+            'u1sat',4,'u2sat',0.46 ...
             );
 end
 % old: 'Ke',2,'kxi',2 ... 
@@ -155,7 +156,7 @@ sys.stateObserver = EkfFilter(DtSystem(model,dt),...
     );
 
 sys.stateObserver.initialConditions(4) = yawInit;
-% sys.stateObserver.initialConditions(1:2) = [2;1];
+sys.stateObserver.initialConditions(1:2) = posInit;
 % sys.stateObserver.initialConditions(4) = sys.yaw0;
 
 % if ny == 2
@@ -179,10 +180,11 @@ extraLogs = {MeasurementsLog(ny),extraLogs{:}};
 extraLogs = {InlineLog('lyapVar',@(t,a,varargin)a.controller.lastE,'Initialization',zeros(3,1)),extraLogs{:}};
 tlog = tic;
 extraLogs = {InlineLog('realTime',@(t,agent,varargin)toc(tlog)),extraLogs{:}};
+extraLogs = {InlineLog('pRef',@(t,a,varargin)a.controller.lastP,'Initialization',zeros(2,1)),extraLogs{:}};
 
 % extraLogs= {};
 a = VirtualArena(sys,...
-    'StoppingCriteria'   ,@(t,as)t>40,...
+    'StoppingCriteria'   ,@(t,as)t>40.2,...
     'StepPlotFunction'   ,@(agentsList,hist,plot_handles,i)stepPlotFunction(agentsList,hist,plot_handles,i,pd,model), ...
     'DiscretizationStep' ,dt,...
     'ExtraLogs'          ,extraLogs,...
@@ -231,8 +233,8 @@ hold on
 plot(ret{1}.time,ret{1}.measurements(3,:),'o');
 
 figure
-m=ret{1}.measurements
-a=ret{1}.observerStateTrajectory(1:2,:)
+m=ret{1}.measurements;
+a=ret{1}.observerStateTrajectory(1:2,:);
 plot(m(1,:),m(2,:),'o')
 hold on
 plot(a(1,:),a(2,:))

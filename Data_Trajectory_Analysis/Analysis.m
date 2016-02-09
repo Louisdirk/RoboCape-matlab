@@ -14,7 +14,7 @@ l = 0.34;
 lr = 0.17;
 
 tv = 1.1;
-tdelta = 0.2;
+tdelta = 0.1;
 
 %% Extract measurements
 
@@ -65,8 +65,14 @@ varEst = ret{1}.observerStateTrajectory(6:6:6*5,:);
 sigEst = sqrt(varEst);
 
 % Plot trajectory estimation with position measurements in gui
-traj = TrajectoryGenerator(p,pv,radius,aCircle,aMax,vSat);
-[traj_ref, ~, ~] = traj.getSampledTraj(Ts,t(end));
+if isfield(ret{1}, 'pRef')
+    traj_ref = ret{1}.pRef';
+elseif exist('p','var')
+    traj = TrajectoryGenerator(p,pv,radius,aCircle,aMax,vSat);
+    [traj_ref, ~, ~] = traj.getSampledTraj(Ts,t(end));
+else
+    traj_ref = zeros(length(t),2);
+end
 ui_plot_traj(t, ret{1}.measurements, t, gpsEst, vfEst, yawEst, traj_ref');
 
 figure(2);
@@ -99,7 +105,7 @@ hold off
 title('Steering angle');
 xlabel('Time (s)');
 ylabel('Steering angle (rad)');
-legend('\delta_{ref}', '\delta_{model}' , '\delta_{est}', 'Value from gyro, speed and geometry', '\sigma_{est}');
+legend('\delta_{ref}', '\delta_{model}' , '\delta_{est}', '\delta_{Gyro}', '\sigma_{est}');
 
 %% Imu readings
 figure(5);
@@ -230,7 +236,7 @@ GPS_Tics = ~isnan(ret{1}.measurements(1,:));
 GPS_Density = conv(double(GPS_Tics), ones(1,windowSize), 'valid')/(windowSize);
 subplot(2,1,2);stem(t,GPS_Tics*100,'Color',[0.8 0.8 0.8]) % GNSS
 hold all
-plot(t(1:end-(windowSize-1)),min(GPS_Density*100*3.3,100),'Color',[0 0 0]);
+plot(t(1:end-(windowSize-1)),min(GPS_Density*100*2.3,100),'Color',[0 0 0]);
 hold off
 xlabel('Time (s)');
 ylabel('Q_{gnss} (%)');

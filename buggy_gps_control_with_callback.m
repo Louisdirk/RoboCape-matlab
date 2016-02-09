@@ -144,9 +144,9 @@ while ~stop_car
     engine_msg.Data = engineValue-12.5;
     
     if steeringAngle > 0
-        steeringValue = steeringAngle*2.08;
+        steeringValue = steeringAngle*2.0835;
     else
-        steeringValue = steeringAngle*1.75;
+        steeringValue = steeringAngle*1.7474;
     end
     
     steering_msg.Data = -steeringValue+0.04;
